@@ -1,4 +1,7 @@
 FROM node:10.24.1
+# NOTE: node v8.9.4 is not support coz it is too old to be supported by the apt-get update source... so I changed to use node v10.24.1 instead.
+
+
 
 # Configure to reduce warnings and limitations as instruction from official VSCode Remote-Containers.
 # See https://code.visualstudio.com/docs/remote/containers-advanced#_reducing-dockerfile-build-warnings.
