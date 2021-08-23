@@ -64,3 +64,6 @@ typings/
 .env
 
 ~$*.pptx
+
+# no temporary npm file
+package-lock.json
