@@ -67,3 +67,6 @@ typings/
 
 # no temporary npm file
 package-lock.json
+
+.DS_Store
+

@@ -5,6 +5,7 @@ pragma solidity ^0.4.25;
 // More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./FlightSuretyData.sol";
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
@@ -19,7 +20,7 @@ contract FlightSuretyApp {
     // Flight status codees
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
     uint8 private constant STATUS_CODE_ON_TIME = 10;
-    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
+    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;   // NOTE: only 20 is interesting in this lesson
     uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
@@ -34,7 +35,33 @@ contract FlightSuretyApp {
     }
     mapping(bytes32 => Flight) private flights;
 
- 
+    FlightSuretyData private flightSuretyData;
+
+    /**
+     * the following variales are airline related
+     */
+    uint8 public constant MP_AIRLINE_COUNT = 5;                 // the 5th airline need to be approved by 50+ existing airline
+    uint8 public constant MP_AIRLINE_APPROVE_PERCENT = 50;      // need 50% of the existing airlines to approve
+
+    // 0: unknown, 1: agree, 2: disagree, (others we don't care for now.)
+    uint8 public constant MP_AIRLINE_APPROVE_CODE_AGREE = 1;
+
+    // struct to store the multi-party consensus request info
+    struct ApproveResponse {
+        address stakeholder;                            // the airline who send the approval response
+        uint8 code;                                     // the code that the approval airline send out
+    }
+    struct AirlineRequest {
+        bool isOpen;                                    // the request is still valid
+        string name;                                    // name of the airline
+        uint256 time;                                   // blockhash time of the new airline request
+        ApproveResponse[] approvalResult;               // the result of the approvals, use uint8 for future reasonCode extension
+    }
+    mapping(address => AirlineRequest) private airlineRequests;         // all the registered airlines
+
+    event AirlineApproveRequest(address airline, address registrant, string name);  // the event to request other airlines to approve a new airline
+    event AirlineApproveResponse(address airline, address approval, uint code);     // the event to tell one airlines has approved a new airline
+
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
@@ -49,8 +76,7 @@ contract FlightSuretyApp {
     */
     modifier requireIsOperational() 
     {
-         // Modify to call data contract's status
-        require(true, "Contract is currently not operational");  
+        require(isOperational(), "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
@@ -60,6 +86,15 @@ contract FlightSuretyApp {
     modifier requireContractOwner()
     {
         require(msg.sender == contractOwner, "Caller is not contract owner");
+        _;
+    }
+
+    /**
+    * @dev Modifier that requires the "registered airline" account to be the function caller
+    */
+    modifier requireRegisteredAirline()
+    {
+        require(flightSuretyData.isRegisteredAirline(msg.sender), "Caller is not registered airline");
         _;
     }
 
@@ -73,10 +108,12 @@ contract FlightSuretyApp {
     */
     constructor
                                 (
+                                    address dataContract
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
+        flightSuretyData = FlightSuretyData(dataContract);
     }
 
     /********************************************************************************************/
@@ -85,29 +122,113 @@ contract FlightSuretyApp {
 
     function isOperational() 
                             public 
-                            pure 
+                            view
                             returns(bool) 
     {
-        return true;  // Modify to call data contract's status
+        bool dataContractIsOperational = flightSuretyData.isOperational();
+        return dataContractIsOperational;  // Modify to call data contract's status
     }
 
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-  
    /**
     * @dev Add an airline to the registration queue
     *
     */   
     function registerAirline
-                            (   
+                            (
+                                address airline,
+                                string name
                             )
                             external
-                            pure
+                            requireIsOperational
+                            requireRegisteredAirline
                             returns(bool success, uint256 votes)
     {
-        return (success, 0);
+        require(airline != address(0), 'bad airline address');
+        require(bytes(name).length > 0, 'airline name is empty');
+        require(!flightSuretyData.isRegisteredAirline(airline), 'the aireline is already registered');
+
+        uint count = flightSuretyData.countOfAirlines();
+        if (count < MP_AIRLINE_COUNT) {
+            success = flightSuretyData.registerAirline(airline, msg.sender, name);
+            votes = 1;
+        } else {
+            require(!airlineRequests[airline].isOpen, 'the airline is already in the waiting list');
+
+            // add it into the request list
+            airlineRequests[airline].isOpen = true;
+            airlineRequests[airline].name = name;
+            airlineRequests[airline].time = now;
+            airlineRequests[airline].approvalResult.push(ApproveResponse({
+                stakeholder: msg.sender,
+                code: MP_AIRLINE_APPROVE_CODE_AGREE
+            }));
+            votes = 1;
+            success = false;
+
+            // notify the other existing airlines to approve
+            emit AirlineApproveRequest(airline, msg.sender, name);
+        }
+
+        return (success, votes);
+    }
+
+   /**
+    * @dev Add an airline to the registration queue
+    * 
+    * param(code): 0: unknown, 1: agree, 2: disagree, (others we don't care for now.)
+    */   
+    function approveAirline
+                            (
+                                address airline,
+                                uint8 code
+                            )
+                            external
+                            requireIsOperational
+                            requireRegisteredAirline
+                            returns(bool success, uint256 votes)
+    {
+        require(!flightSuretyData.isRegisteredAirline(airline), 'the aireline is already registered');
+        require(airlineRequests[airline].isOpen, 'the airline is not in the waiting list');
+
+        // check if the msg.sender has alread voted before
+        // check current response list for its status
+        uint agreeCount = 0;
+        ApproveResponse[] storage responses = airlineRequests[airline].approvalResult;
+        for (uint i=0; i<responses.length; i++) {
+            require(responses[i].stakeholder != msg.sender, "Caller has already approved.");
+
+            if (responses[i].code == MP_AIRLINE_APPROVE_CODE_AGREE) {
+                agreeCount ++;
+            }
+        }
+
+        // store the response data, as the approval history
+        votes = responses.length + 1;
+        airlineRequests[airline].approvalResult.push(ApproveResponse({
+            stakeholder: msg.sender,
+            code: code
+        }));
+        success = false;
+        emit AirlineApproveResponse(airline, msg.sender, code);
+
+        // add the vote response of the approval airline
+        if (code == MP_AIRLINE_APPROVE_CODE_AGREE) {
+            agreeCount ++;
+
+            uint countOfAirlines = flightSuretyData.countOfAirlines();
+            uint percent = agreeCount.mul(100).div(countOfAirlines);
+            if (percent >= MP_AIRLINE_APPROVE_PERCENT) {
+                airlineRequests[airline].isOpen = false;
+                // for multi-party consensus, we use the first element
+                success = flightSuretyData.registerAirline(airline, responses[0].stakeholder, airlineRequests[airline].name);
+            }
+        }
+
+        return (success, votes);
     }
 
 
@@ -119,7 +240,7 @@ contract FlightSuretyApp {
                                 (
                                 )
                                 external
-                                pure
+                                requireIsOperational
     {
 
     }
@@ -128,7 +249,7 @@ contract FlightSuretyApp {
     * @dev Called after oracle has updated flight status
     *
     */  
-    function processFlightStatus
+    function _processFlightStatus
                                 (
                                     address airline,
                                     string memory flight,
@@ -136,7 +257,6 @@ contract FlightSuretyApp {
                                     uint8 statusCode
                                 )
                                 internal
-                                pure
     {
     }
 
@@ -149,8 +269,9 @@ contract FlightSuretyApp {
                             uint256 timestamp                            
                         )
                         external
+                        requireIsOperational
     {
-        uint8 index = getRandomIndex(msg.sender);
+        uint8 index = _getRandomIndex(msg.sender);
 
         // Generate a unique key for storing the request
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp));
@@ -206,6 +327,14 @@ contract FlightSuretyApp {
     // they fetch data and submit a response
     event OracleRequest(uint8 index, address airline, string flight, uint256 timestamp);
 
+    /**
+    * @dev Modifier that requires the caller is a valid registered oracle
+    */
+    modifier requireIsOracleRegistered()
+    {
+        require(oracles[msg.sender].isRegistered, "Not registered as an oracle");
+        _;
+    }
 
     // Register an oracle with the contract
     function registerOracle
@@ -213,11 +342,12 @@ contract FlightSuretyApp {
                             )
                             external
                             payable
+                            requireIsOperational
     {
         // Require registration fee
         require(msg.value >= REGISTRATION_FEE, "Registration fee is required");
 
-        uint8[3] memory indexes = generateIndexes(msg.sender);
+        uint8[3] memory indexes = _generateIndexes(msg.sender);
 
         oracles[msg.sender] = Oracle({
                                         isRegistered: true,
@@ -230,10 +360,9 @@ contract FlightSuretyApp {
                             )
                             view
                             external
+                            requireIsOracleRegistered
                             returns(uint8[3])
     {
-        require(oracles[msg.sender].isRegistered, "Not registered as an oracle");
-
         return oracles[msg.sender].indexes;
     }
 
@@ -253,6 +382,8 @@ contract FlightSuretyApp {
                             uint8 statusCode
                         )
                         external
+                        requireIsOperational
+                        requireIsOracleRegistered
     {
         require((oracles[msg.sender].indexes[0] == index) || (oracles[msg.sender].indexes[1] == index) || (oracles[msg.sender].indexes[2] == index), "Index does not match oracle request");
 
@@ -270,12 +401,12 @@ contract FlightSuretyApp {
             emit FlightStatusInfo(airline, flight, timestamp, statusCode);
 
             // Handle flight status as appropriate
-            processFlightStatus(airline, flight, timestamp, statusCode);
+            _processFlightStatus(airline, flight, timestamp, statusCode);
         }
     }
 
 
-    function getFlightKey
+    function _getFlightKey
                         (
                             address airline,
                             string flight,
@@ -289,7 +420,7 @@ contract FlightSuretyApp {
     }
 
     // Returns array of three non-duplicating integers from 0-9
-    function generateIndexes
+    function _generateIndexes
                             (                       
                                 address account         
                             )
@@ -297,23 +428,23 @@ contract FlightSuretyApp {
                             returns(uint8[3])
     {
         uint8[3] memory indexes;
-        indexes[0] = getRandomIndex(account);
+        indexes[0] = _getRandomIndex(account);
         
         indexes[1] = indexes[0];
         while(indexes[1] == indexes[0]) {
-            indexes[1] = getRandomIndex(account);
+            indexes[1] = _getRandomIndex(account);
         }
 
         indexes[2] = indexes[1];
         while((indexes[2] == indexes[0]) || (indexes[2] == indexes[1])) {
-            indexes[2] = getRandomIndex(account);
+            indexes[2] = _getRandomIndex(account);
         }
 
         return indexes;
     }
 
     // Returns array of three non-duplicating integers from 0-9
-    function getRandomIndex
+    function _getRandomIndex
                             (
                                 address account
                             )
