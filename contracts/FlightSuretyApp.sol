@@ -17,50 +17,9 @@ contract FlightSuretyApp {
     /*                                       DATA VARIABLES                                     */
     /********************************************************************************************/
 
-    // Flight status codees
-    uint8 private constant STATUS_CODE_UNKNOWN = 0;
-    uint8 private constant STATUS_CODE_ON_TIME = 10;
-    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;   // NOTE: only 20 is interesting in this lesson
-    uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
-    uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
-    uint8 private constant STATUS_CODE_LATE_OTHER = 50;
-
     address private contractOwner;          // Account used to deploy contract
 
-    struct Flight {
-        bool isRegistered;
-        uint8 statusCode;
-        uint256 updatedTimestamp;        
-        address airline;
-    }
-    mapping(bytes32 => Flight) private flights;
-
     FlightSuretyData private flightSuretyData;
-
-    /**
-     * the following variales are airline related
-     */
-    uint8 public constant MP_AIRLINE_COUNT = 5;                 // the 5th airline need to be approved by 50+ existing airline
-    uint8 public constant MP_AIRLINE_APPROVE_PERCENT = 50;      // need 50% of the existing airlines to approve
-
-    // 0: unknown, 1: agree, 2: disagree, (others we don't care for now.)
-    uint8 public constant MP_AIRLINE_APPROVE_CODE_AGREE = 1;
-
-    // struct to store the multi-party consensus request info
-    struct ApproveResponse {
-        address stakeholder;                            // the airline who send the approval response
-        uint8 code;                                     // the code that the approval airline send out
-    }
-    struct AirlineRequest {
-        bool isOpen;                                    // the request is still valid
-        string name;                                    // name of the airline
-        uint256 time;                                   // blockhash time of the new airline request
-        ApproveResponse[] approvalResult;               // the result of the approvals, use uint8 for future reasonCode extension
-    }
-    mapping(address => AirlineRequest) private airlineRequests;         // all the registered airlines
-
-    event AirlineApproveRequest(address airline, address registrant, string name);  // the event to request other airlines to approve a new airline
-    event AirlineApproveResponse(address airline, address approval, uint code);     // the event to tell one airlines has approved a new airline
 
     /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
@@ -132,6 +91,36 @@ contract FlightSuretyApp {
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
+
+// region AIRLINE MANAGEMENT
+
+    /*****************************************************************
+     * the following variales are airline related
+     ****************************************************************/
+     
+    uint8 public constant MP_AIRLINE_COUNT = 5;                 // the 5th airline need to be approved by 50+ existing airline
+    uint8 public constant MP_AIRLINE_APPROVE_PERCENT = 50;      // need 50% of the existing airlines to approve
+
+    // 0: unknown, 1: agree, 2: disagree, (others we don't care for now.)
+    uint8 public constant MP_AIRLINE_APPROVE_CODE_AGREE = 1;
+
+    uint256 public constant FUND_FEE_AIRLINE = 10 ether;        // Fee to be paid when registering oracle
+
+    // struct to store the multi-party consensus request info
+    struct ApproveResponse {
+        address stakeholder;                            // the airline who send the approval response
+        uint8 code;                                     // the code that the approval airline send out
+    }
+    struct AirlineRequest {
+        bool isOpen;                                    // the request is still valid
+        string name;                                    // name of the airline
+        uint256 time;                                   // blockhash time of the new airline request
+        ApproveResponse[] approvalResult;               // the result of the approvals, use uint8 for future reasonCode extension
+    }
+    mapping(address => AirlineRequest) private airlineRequests;         // all the registered airlines
+
+    event AirlineApproveRequest(address airline, address registrant, string name);  // the event to request other airlines to approve a new airline
+    event AirlineApproveResponse(address airline, address approval, uint code);     // the event to tell one airlines has approved a new airline
 
    /**
     * @dev Add an airline to the registration queue
@@ -223,14 +212,78 @@ contract FlightSuretyApp {
             uint percent = agreeCount.mul(100).div(countOfAirlines);
             if (percent >= MP_AIRLINE_APPROVE_PERCENT) {
                 airlineRequests[airline].isOpen = false;
-                // for multi-party consensus, we use the first element
-                success = flightSuretyData.registerAirline(airline, responses[0].stakeholder, airlineRequests[airline].name);
+
+                // for multi-party consensus, we use the first element first and fall back to use msg.sender if not present
+                address registrant = airlineRequests[airline].approvalResult[0].stakeholder;
+                success = flightSuretyData.registerAirline(airline, registrant, airlineRequests[airline].name);
             }
         }
 
         return (success, votes);
     }
 
+   /**
+    * @dev Initial funding for the insurance. Unless there are too many delayed flights
+    *      resulting in insurance payouts, the contract should be self-sustaining
+    *
+    *      Can only be called from FlightSuretyApp contract
+    */   
+    function fundAirline
+                            (
+                                address airline
+                            )
+                            external
+                            payable
+                            requireIsOperational
+                            requireRegisteredAirline
+    {
+        require(airline != address(0), 'invalid airline');
+        require(msg.value >= FUND_FEE_AIRLINE, 'Not paied enough to fund the airline');
+
+        flightSuretyData.fundAirline.value(msg.value)(airline);
+    }
+
+// endregion
+
+// region FLIGHT MANAGEMENT
+
+    /*****************************************************************
+     * the following variales are flight related
+     ****************************************************************/
+
+    // Flight status codees
+    uint8 private constant STATUS_CODE_UNKNOWN = 0;
+    uint8 private constant STATUS_CODE_ON_TIME = 10;
+    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;   // NOTE: only 20 is interesting in this lesson
+    uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
+    uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
+    uint8 private constant STATUS_CODE_LATE_OTHER = 50;
+
+    struct Flight {
+        bool isOpen;
+        address airline;
+        string flight;
+        uint256 flightTimestamp;        
+        uint8 statusCode;
+    }
+    mapping(bytes32 => Flight) private flights;
+    bytes32[] private flightIdArray;
+
+    /**
+     * Utils function to caculate flight key
+     */
+    function _getFlightKey
+                        (
+                            address airline,
+                            string flight,
+                            uint256 timestamp
+                        )
+                        pure
+                        internal
+                        returns(bytes32) 
+    {
+        return keccak256(abi.encodePacked(airline, flight, timestamp));
+    }
 
    /**
     * @dev Register a future flight for insuring.
@@ -238,17 +291,62 @@ contract FlightSuretyApp {
     */  
     function registerFlight
                                 (
+                                    address airline,
+                                    string flight,
+                                    uint256 flightTimestamp
                                 )
                                 external
                                 requireIsOperational
+                                requireRegisteredAirline
     {
+        require(flightSuretyData.isRegisteredAirline(airline), 'the airline does not exist');
+        require(bytes(flight).length > 0, 'no flight info ');
 
+        bytes32 flightId = _getFlightKey(airline, flight, flightTimestamp);
+        require(!flights[flightId].isOpen, 'the flight already exists');
+
+        flights[flightId] = Flight({
+            isOpen: true,
+            airline: airline,
+            flight: flight,
+            flightTimestamp: flightTimestamp,
+            statusCode: STATUS_CODE_UNKNOWN
+        });
+        flightIdArray.push(flightId);
     }
+
+    /**
+     * the total count of the active flight
+     */
+    function getFlightCount()
+                                external
+                                view
+                                returns(uint256)
+    {
+        return flightIdArray.length;
+    }
+
+    /**
+     * retrieve info of the index-th active flight
+     */
+    function getFlightInfomation(uint256 index)
+                                external
+                                view
+                                returns(address airline, string flight, uint256 flightTimestamp, uint8 statusCode)
+    {
+        require(index < flightIdArray.length, 'no more flight');
+
+        bytes32 flightId = flightIdArray[index];
+        require(flights[flightId].isOpen, 'the flight is not open to insure');
+
+        Flight storage result = flights[flightId];
+        return (result.airline, result.flight, result.flightTimestamp, result.statusCode);
+    }                                
     
-   /**
-    * @dev Called after oracle has updated flight status
-    *
-    */  
+    /**
+     * @dev Called after oracle has updated flight status
+     *
+     */  
     function _processFlightStatus
                                 (
                                     address airline,
@@ -258,8 +356,14 @@ contract FlightSuretyApp {
                                 )
                                 internal
     {
-    }
+        bytes32 flightId = _getFlightKey(airline, flight, timestamp);
+        require(flights[flightId].isOpen, 'the flight does not exists');
 
+        flights[flightId].statusCode = statusCode;
+
+        // NOTE: we don't proactively refund the insuree, since the count of insuree probably be very large
+        //   and we will exhaust our gas limit to handle it
+    }
 
     // Generate a request for oracles to fetch flight information
     function fetchFlightStatus
@@ -271,6 +375,9 @@ contract FlightSuretyApp {
                         external
                         requireIsOperational
     {
+        bytes32 flightId = _getFlightKey(airline, flight, timestamp);
+        require(flights[flightId].isOpen, 'the flight does not exists');
+
         uint8 index = _getRandomIndex(msg.sender);
 
         // Generate a unique key for storing the request
@@ -283,6 +390,74 @@ contract FlightSuretyApp {
         emit OracleRequest(index, airline, flight, timestamp);
     } 
 
+// endregion
+
+// region Insurance MANAGEMENT
+
+    uint256 public constant FUND_FEE_FLIGHT_MAX = 1 ether;              // Fee to be paid when registering oracle
+
+    // Generate a request for oracles to fetch flight information
+    function buyInsurance
+                        (
+                            address passenger,
+                            address airline,
+                            string flight,
+                            uint256 timestamp                            
+                        )
+                        external
+                        payable
+                        requireIsOperational
+    {
+        require(passenger != address(0), 'invalid passenger');
+        require((msg.value > 0) && (msg.value <= FUND_FEE_FLIGHT_MAX), 'invalid payment for the flight insurance');
+
+        // validate it is a valid flight
+        bytes32 flightId = _getFlightKey(airline, flight, timestamp);
+        require(flights[flightId].isOpen, 'the flight does not exists');
+
+        // calculate payback money and finish buying the insurance
+        uint256 insurancePayback = msg.value;
+        insurancePayback = insurancePayback.mul(3).div(2);
+        flightSuretyData.buyInsurance.value(msg.value)(passenger, airline, flight, timestamp, insurancePayback);
+    }
+
+    // Generate a request for oracles to fetch flight information
+    function claimInsurancePayback
+                        (
+                            address passenger,
+                            address airline,
+                            string flight,
+                            uint256 timestamp                            
+                        )
+                        external
+                        requireIsOperational
+    {
+        require(passenger != address(0), 'invalid passenger');
+
+        // validate it is a valid flight
+        bytes32 flightId = _getFlightKey(airline, flight, timestamp);
+        require(flights[flightId].isOpen, 'the flight does not exists');
+
+        // check flight status
+        require(flights[flightId].statusCode == STATUS_CODE_LATE_AIRLINE, 'flight is not delayed, no pay back');
+
+        flightSuretyData.creditInsurees(passenger, airline, flight, timestamp);
+    }
+
+    function passengerWithdraw
+                            (
+                                uint256 amount
+                            )
+                            external
+                            requireIsOperational
+    {
+        require(amount > 0, 'please specify the amount to withdraw');
+
+        flightSuretyData.payWithdraw(msg.sender, amount);
+    }
+      
+
+// endregion
 
 // region ORACLE MANAGEMENT
 
@@ -311,6 +486,7 @@ contract FlightSuretyApp {
         mapping(uint8 => address[]) responses;          // Mapping key is the status code reported
                                                         // This lets us group responses and identify
                                                         // the response that majority of the oracles
+        mapping(address => bool) oracles;               // Remember the oracles which has responsed
     }
 
     // Track all oracle responses
@@ -366,9 +542,6 @@ contract FlightSuretyApp {
         return oracles[msg.sender].indexes;
     }
 
-
-
-
     // Called by oracle when a response is available to an outstanding request
     // For the response to be accepted, there must be a pending request that is open
     // and matches one of the three Indexes randomly assigned to the oracle at the
@@ -390,12 +563,17 @@ contract FlightSuretyApp {
 
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp)); 
         require(oracleResponses[key].isOpen, "Flight or timestamp do not match oracle request");
+        require(!oracleResponses[key].oracles[msg.sender], 'the oracle already responsed before');
 
+        // remember the vote result
         oracleResponses[key].responses[statusCode].push(msg.sender);
+        oracleResponses[key].oracles[msg.sender] = true;
 
         // Information isn't considered verified until at least MIN_RESPONSES
         // oracles respond with the *** same *** information
         emit OracleReport(airline, flight, timestamp, statusCode);
+
+        // check the vote result
         if (oracleResponses[key].responses[statusCode].length >= MIN_RESPONSES) {
 
             emit FlightStatusInfo(airline, flight, timestamp, statusCode);
@@ -403,20 +581,6 @@ contract FlightSuretyApp {
             // Handle flight status as appropriate
             _processFlightStatus(airline, flight, timestamp, statusCode);
         }
-    }
-
-
-    function _getFlightKey
-                        (
-                            address airline,
-                            string flight,
-                            uint256 timestamp
-                        )
-                        pure
-                        internal
-                        returns(bytes32) 
-    {
-        return keccak256(abi.encodePacked(airline, flight, timestamp));
     }
 
     // Returns array of three non-duplicating integers from 0-9
