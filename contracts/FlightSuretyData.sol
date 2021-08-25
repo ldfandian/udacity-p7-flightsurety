@@ -76,7 +76,6 @@ contract FlightSuretyData {
         _;
     }
 
-
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
@@ -150,8 +149,8 @@ contract FlightSuretyData {
         uint256 totalFund;                                              // total balance (in wei) that the airline has funded
     }
 
-    uint public countOfAirlines = 0;                                    // count of the registered airlines
     mapping(address => Airline) private airlines;                       // all the registered airlines (excluding wait-for-approval airlines)
+    address[] private airlineAddresses;
 
     /**
      * @dev Check if an airline is registered
@@ -199,14 +198,14 @@ contract FlightSuretyData {
             name: name,
             totalFund: 0
         });
-        countOfAirlines ++;
+        airlineAddresses.push(airline);
     }
 
-   /**
-    * @dev Add an airline to the registration queue
-    *      Can only be called from FlightSuretyApp contract
-    *
-    */   
+    /**
+     * @dev Add an airline to the registration queue
+     *      Can only be called from FlightSuretyApp contract
+     *
+     */   
     function registerAirline
                             (   
                                 address airline,
@@ -219,6 +218,68 @@ contract FlightSuretyData {
     {
         _addAirline(airline, name);
         return true;
+    }
+
+    /**
+     * @dev Get the infomation of one particular airline
+     *      Can only be called from FlightSuretyApp contract
+     *
+     */   
+    function getAirlineInfomation
+                            (
+                                address airline
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            returns(string name, bool isFunded)
+    {
+        require(airlines[airline].isRegistered, 'the aireline is not registered');
+
+        return (
+            airlines[airline].name,
+            (airlines[airline].totalFund >= FUND_FEE_AIRLINE)
+        );
+    }
+
+    /**
+     * @dev Get the infomation of one particular airline
+     *      Can only be called from FlightSuretyApp contract
+     *
+     */   
+    function getAirlineInfomationByIndex
+                            (
+                                uint256 index
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            returns(address airline, string name, bool isFunded)
+    {
+        require(airlineAddresses.length > index, 'the index is invalid');
+
+        airline = airlineAddresses[index];
+        require(airlines[airline].isRegistered, 'the aireline is not registered');
+
+        return (
+            airline,
+            airlines[airline].name,
+            (airlines[airline].totalFund >= FUND_FEE_AIRLINE)
+        );
+    }
+
+    /**
+     * @dev Retrieve the count of all airline
+     */   
+    function countOfAirlines
+                            (
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            returns(uint256)
+    {
+        return airlineAddresses.length;
     }
 
    /**

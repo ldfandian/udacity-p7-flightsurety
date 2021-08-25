@@ -22,6 +22,24 @@ contract FlightSuretyApp {
     FlightSuretyData private flightSuretyData;
 
     /********************************************************************************************/
+    /*                                       CONSTRUCTOR                                        */
+    /********************************************************************************************/
+
+    /**
+    * @dev Contract constructor
+    *
+    */
+    constructor
+                                (
+                                    address dataContract
+                                ) 
+                                public 
+    {
+        contractOwner = msg.sender;
+        flightSuretyData = FlightSuretyData(dataContract);
+    }
+
+    /********************************************************************************************/
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
 
@@ -64,24 +82,6 @@ contract FlightSuretyApp {
     {
         require(flightSuretyData.isFundedAirline(msg.sender), "Caller airline is not registered or not funded");
         _;
-    }
-
-    /********************************************************************************************/
-    /*                                       CONSTRUCTOR                                        */
-    /********************************************************************************************/
-
-    /**
-    * @dev Contract constructor
-    *
-    */
-    constructor
-                                (
-                                    address dataContract
-                                ) 
-                                public 
-    {
-        contractOwner = msg.sender;
-        flightSuretyData = FlightSuretyData(dataContract);
     }
 
     /********************************************************************************************/
@@ -131,12 +131,12 @@ contract FlightSuretyApp {
     event AirlineApproveRequest(address airline, address registrant, string name);  // the event to request other airlines to approve a new airline
     event AirlineApproveResponse(address airline, address approval, uint code);     // the event to tell one airlines has approved a new airline
 
-    event AirlineRegistered(address airline, address registrant, string name);      // the event to request other airlines to approve a new airline
+    event AirlineRegistered(address airline, address registrant, string name);      // the event to tell a new airline has been registered
 
-   /**
-    * @dev Add an airline to the registration queue
-    *
-    */   
+    /**
+     * @dev Add an airline to the registration queue
+     *
+     */   
     function registerAirline
                             (
                                 address airline,
@@ -180,11 +180,11 @@ contract FlightSuretyApp {
         return (success, votes);
     }
 
-   /**
-    * @dev Add an airline to the registration queue
-    * 
-    * param(code): 0: unknown, 1: agree, 2: disagree, (others we don't care for now.)
-    */   
+    /**
+     * @dev Add an airline to the registration queue
+     * 
+     * param(code): 0: unknown, 1: agree, 2: disagree, (others we don't care for now.)
+     */   
     function approveAirline
                             (
                                 address airline,
@@ -260,6 +260,35 @@ contract FlightSuretyApp {
         require(msg.value >= FUND_FEE_AIRLINE, 'Not paied enough to fund the airline');
 
         flightSuretyData.fundAirline.value(msg.value)(airline);
+    }
+
+    /**
+     * @dev Get the infomation of one particular airline
+     */   
+    function getAirlineInfomationByIndex
+                            (
+                                uint256 index
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            returns(address airline, string name, bool isFunded)
+    {
+        return flightSuretyData.getAirlineInfomationByIndex(index);
+    }
+
+    /**
+     * @dev Retrieve the count of all airline
+     */   
+    function countOfAirlines
+                            (
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            returns(uint256)
+    {
+        return flightSuretyData.countOfAirlines();
     }
 
 // endregion
@@ -351,15 +380,18 @@ contract FlightSuretyApp {
     function getFlightInfomation(uint256 index)
                                 external
                                 view
-                                returns(address airline, string flight, uint256 flightTimestamp, uint8 statusCode)
+                                returns(
+                                    address airline, string airlineName, bool airlineFunded,
+                                    string flight, uint256 flightTimestamp, uint8 statusCode)
     {
         require(index < flightIdArray.length, 'no more flight');
 
         bytes32 flightId = flightIdArray[index];
         require(flights[flightId].isOpen, 'the flight is not open to insure');
 
+        (airlineName, airlineFunded) = flightSuretyData.getAirlineInfomation(airline);
         Flight storage result = flights[flightId];
-        return (result.airline, result.flight, result.flightTimestamp, result.statusCode);
+        return (result.airline, airlineName, airlineFunded, result.flight, result.flightTimestamp, result.statusCode);
     }                                
     
     /**
