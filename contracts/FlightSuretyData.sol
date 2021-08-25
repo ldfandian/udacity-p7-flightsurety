@@ -155,11 +155,10 @@ contract FlightSuretyData {
 
     event AirlineRegistered(address airline, address registrant, string name);              // the event to request other airlines to approve a new airline
 
-   /**
-    * @dev Add an airline to the registration queue
-    *      Can only be called from FlightSuretyApp contract
-    *
-    */   
+    /**
+     * @dev Check if an airline is registered
+     *
+     */   
     function isRegisteredAirline
                             (
                                 address airline
@@ -169,6 +168,21 @@ contract FlightSuretyData {
                             returns(bool)
     {
         return airlines[airline].isRegistered;
+    }
+
+    /**
+     * @dev Check if an airline is registered and funded
+     *
+     */   
+    function isFundedAirline
+                            (
+                                address airline
+                            )
+                            external
+                            view
+                            returns(bool)
+    {
+        return (airlines[airline].isRegistered && (airlines[airline].totalFund >= FUND_FEE_AIRLINE));
     }
 
     function _addAirline

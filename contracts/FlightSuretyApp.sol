@@ -57,6 +57,15 @@ contract FlightSuretyApp {
         _;
     }
 
+    /**
+    * @dev Modifier that requires the "registered and funded airline" account to be the function caller
+    */
+    modifier requireFundedAirline()
+    {
+        require(flightSuretyData.isFundedAirline(msg.sender), "Caller airline is not registered or not funded");
+        _;
+    }
+
     /********************************************************************************************/
     /*                                       CONSTRUCTOR                                        */
     /********************************************************************************************/
@@ -133,7 +142,7 @@ contract FlightSuretyApp {
                             )
                             external
                             requireIsOperational
-                            requireRegisteredAirline
+                            requireFundedAirline
                             returns(bool success, uint256 votes)
     {
         require(airline != address(0), 'bad airline address');
@@ -177,7 +186,7 @@ contract FlightSuretyApp {
                             )
                             external
                             requireIsOperational
-                            requireRegisteredAirline
+                            requireFundedAirline
                             returns(bool success, uint256 votes)
     {
         require(!flightSuretyData.isRegisteredAirline(airline), 'the aireline is already registered');
@@ -227,7 +236,7 @@ contract FlightSuretyApp {
     *      resulting in insurance payouts, the contract should be self-sustaining
     *
     *      Can only be called from FlightSuretyApp contract
-    */   
+    */
     function fundAirline
                             (
                                 address airline
@@ -297,7 +306,7 @@ contract FlightSuretyApp {
                                 )
                                 external
                                 requireIsOperational
-                                requireRegisteredAirline
+                                requireFundedAirline
     {
         require(flightSuretyData.isRegisteredAirline(airline), 'the airline does not exist');
         require(bytes(flight).length > 0, 'no flight info ');
