@@ -525,10 +525,10 @@ contract FlightSuretyApp {
     uint8 private nonce = 0;    
 
     // Fee to be paid when registering oracle
-    uint256 public constant REGISTRATION_FEE = 1 ether;
+    uint256 public constant ORACLE_REGISTRATION_FEE = 1 ether;
 
     // Number of oracles that must respond for valid status
-    uint256 private constant MIN_RESPONSES = 3;
+    uint256 private constant ORACLE_MIN_RESPONSES = 3;
 
 
     struct Oracle {
@@ -581,14 +581,15 @@ contract FlightSuretyApp {
                             requireIsOperational
     {
         // Require registration fee
-        require(msg.value >= REGISTRATION_FEE, "Registration fee is required");
+        require(msg.value >= ORACLE_REGISTRATION_FEE, 'Registration fee is required');
 
-        uint8[3] memory indexes = _generateIndexes(msg.sender);
-
-        oracles[msg.sender] = Oracle({
-                                        isRegistered: true,
-                                        indexes: indexes
-                                    });
+        if (!oracles[msg.sender].isRegistered) {
+            uint8[3] memory indexes = _generateIndexes(msg.sender);
+            oracles[msg.sender] = Oracle({
+                                            isRegistered: true,
+                                            indexes: indexes
+                                        });
+        }
     }
 
     function getMyIndexes
@@ -629,12 +630,12 @@ contract FlightSuretyApp {
         oracleResponses[key].responses[statusCode].push(msg.sender);
         oracleResponses[key].oracles[msg.sender] = true;
 
-        // Information isn't considered verified until at least MIN_RESPONSES
+        // Information isn't considered verified until at least ORACLE_MIN_RESPONSES
         // oracles respond with the *** same *** information
         emit OracleReport(airline, flight, timestamp, statusCode);
 
         // check the vote result
-        if (oracleResponses[key].responses[statusCode].length >= MIN_RESPONSES) {
+        if (oracleResponses[key].responses[statusCode].length >= ORACLE_MIN_RESPONSES) {
 
             emit FlightStatusInfo(airline, flight, timestamp, statusCode);
 

@@ -31,13 +31,19 @@ contract FlightSuretyData {
     */
     constructor
                                 (
+                                    address airline,
                                     string airlineName
                                 ) 
                                 public 
     {
+        require(bytes(airlineName).length > 0, 'bad airline name');
         contractOwner = msg.sender;
+        if (airline == address(0)) {
+            _addAirline(msg.sender, airlineName);
+        } else {
+            _addAirline(airline, airlineName);      // use msg.sender if airline address is not empty
+        }
 
-        _addAirline(msg.sender, airlineName);
     }
 
     /********************************************************************************************/
