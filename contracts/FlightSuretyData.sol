@@ -37,7 +37,7 @@ contract FlightSuretyData {
     {
         contractOwner = msg.sender;
 
-        _addAirline(msg.sender, msg.sender, airlineName);
+        _addAirline(msg.sender, airlineName);
     }
 
     /********************************************************************************************/
@@ -153,8 +153,6 @@ contract FlightSuretyData {
     uint public countOfAirlines = 0;                                    // count of the registered airlines
     mapping(address => Airline) private airlines;                       // all the registered airlines (excluding wait-for-approval airlines)
 
-    event AirlineRegistered(address airline, address registrant, string name);              // the event to request other airlines to approve a new airline
-
     /**
      * @dev Check if an airline is registered
      *
@@ -188,7 +186,6 @@ contract FlightSuretyData {
     function _addAirline
                             (   
                                 address airline,
-                                address registrant,
                                 string name
                             )
                             internal
@@ -203,8 +200,6 @@ contract FlightSuretyData {
             totalFund: 0
         });
         countOfAirlines ++;
-
-        emit AirlineRegistered(airline, registrant, name);
     }
 
    /**
@@ -215,7 +210,6 @@ contract FlightSuretyData {
     function registerAirline
                             (   
                                 address airline,
-                                address registrant,
                                 string name
                             )
                             external
@@ -223,7 +217,7 @@ contract FlightSuretyData {
                             requireIsCallerAuthorized
                             returns(bool)
     {
-        _addAirline(airline, registrant, name);
+        _addAirline(airline, name);
         return true;
     }
 
@@ -266,11 +260,6 @@ contract FlightSuretyData {
     }
     mapping(address => InsuranceInfo[]) passengerInsurance;
 
-    event PassengerBuyInsurance(address passenger, address airline, string flight, uint256 timestamp);
-    event InsurancePaidbackCredit(address passenger, address airline, string flight, uint256 timestamp);
-
-    event PassengerWithdraw(address passenger);
-
    /**
     * @dev Buy insurance for a flight
     *      Can only be called from FlightSuretyApp contract
@@ -312,7 +301,6 @@ contract FlightSuretyData {
             insurancePayback: insurancePayback,
             insuranceTimestamp: now
         }));
-        emit PassengerBuyInsurance(passenger, airline, flight, timestamp);
     }
 
     /**
@@ -357,7 +345,6 @@ contract FlightSuretyData {
                     passengerInsurance[passenger].length --;
                 }
 
-                emit InsurancePaidbackCredit(passenger, airline, flight, timestamp);
                 break;
             }
         }
@@ -391,7 +378,6 @@ contract FlightSuretyData {
 
         // result
         msg.sender.transfer(amount);
-        emit PassengerWithdraw(msg.sender);
     }
 
 // endregion

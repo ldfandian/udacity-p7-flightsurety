@@ -131,6 +131,8 @@ contract FlightSuretyApp {
     event AirlineApproveRequest(address airline, address registrant, string name);  // the event to request other airlines to approve a new airline
     event AirlineApproveResponse(address airline, address approval, uint code);     // the event to tell one airlines has approved a new airline
 
+    event AirlineRegistered(address airline, address registrant, string name);      // the event to request other airlines to approve a new airline
+
    /**
     * @dev Add an airline to the registration queue
     *
@@ -151,8 +153,12 @@ contract FlightSuretyApp {
 
         uint count = flightSuretyData.countOfAirlines();
         if (count < MP_AIRLINE_COUNT) {
-            success = flightSuretyData.registerAirline(airline, msg.sender, name);
+            success = flightSuretyData.registerAirline(airline, name);
             votes = 1;
+            
+            if (success) {
+                emit AirlineRegistered(airline, msg.sender, name);
+            }
         } else {
             require(!airlineRequests[airline].isOpen, 'the airline is already in the waiting list');
 
@@ -224,7 +230,11 @@ contract FlightSuretyApp {
 
                 // for multi-party consensus, we use the first element first and fall back to use msg.sender if not present
                 address registrant = airlineRequests[airline].approvalResult[0].stakeholder;
-                success = flightSuretyData.registerAirline(airline, registrant, airlineRequests[airline].name);
+                string storage name = airlineRequests[airline].name;
+                success = flightSuretyData.registerAirline(airline, name);
+                if (success) {
+                    emit AirlineRegistered(airline, registrant, name);
+                }
             }
         }
 
@@ -405,6 +415,11 @@ contract FlightSuretyApp {
 
     uint256 public constant FUND_FEE_FLIGHT_MAX = 1 ether;              // Fee to be paid when registering oracle
 
+    event PassengerBuyInsurance(address passenger, address airline, string flight, uint256 timestamp);
+    event InsurancePaidbackCredit(address passenger, address airline, string flight, uint256 timestamp);
+
+    event PassengerWithdraw(address passenger);
+
     // Generate a request for oracles to fetch flight information
     function buyInsurance
                         (
@@ -428,6 +443,8 @@ contract FlightSuretyApp {
         uint256 insurancePayback = msg.value;
         insurancePayback = insurancePayback.mul(3).div(2);
         flightSuretyData.buyInsurance.value(msg.value)(passenger, airline, flight, timestamp, insurancePayback);
+
+        emit PassengerBuyInsurance(passenger, airline, flight, timestamp);
     }
 
     // Generate a request for oracles to fetch flight information
@@ -451,6 +468,7 @@ contract FlightSuretyApp {
         require(flights[flightId].statusCode == STATUS_CODE_LATE_AIRLINE, 'flight is not delayed, no pay back');
 
         flightSuretyData.creditInsurees(passenger, airline, flight, timestamp);
+        emit InsurancePaidbackCredit(passenger, airline, flight, timestamp);
     }
 
     function passengerWithdraw
@@ -463,6 +481,7 @@ contract FlightSuretyApp {
         require(amount > 0, 'please specify the amount to withdraw');
 
         flightSuretyData.payWithdraw(msg.sender, amount);
+        emit PassengerWithdraw(msg.sender);
     }
       
 
