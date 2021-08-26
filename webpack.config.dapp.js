@@ -42,6 +42,7 @@ module.exports = {
   },
   devServer: {
     contentBase: path.join(__dirname, "dapp"),
+    host: '0.0.0.0',
     port: 8000,
     stats: "minimal"
   }
