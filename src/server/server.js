@@ -85,7 +85,7 @@ flightSuretyApp.events.OracleRequest({ fromBlock: 0 }, function (error, event) {
   let targetTimestamp = event.returnValues.timestamp;
 
   // let each oracle to handle the request
-  oracleAddrToIndexes.forEach((value, key, map) => {
+  oracleAddrToIndexes.forEach((value, key) => {
     let oracleAddress = key;
     let oracleInfo = value;
 
