@@ -240,7 +240,7 @@ contract FlightSuretyData {
                             requireIsOperational
                             returns(string name, bool isFunded)
     {
-        require(airlines[airline].isRegistered, 'the aireline is not registered');
+        require(airlines[airline].isRegistered, 'the airline is not registered');
 
         return (
             airlines[airline].name,
@@ -265,7 +265,7 @@ contract FlightSuretyData {
         require(airlineAddresses.length > index, 'the index is invalid');
 
         airline = airlineAddresses[index];
-        require(airlines[airline].isRegistered, 'the aireline is not registered');
+        require(airlines[airline].isRegistered, 'the airline is not registered');
 
         return (
             airline,
@@ -303,7 +303,7 @@ contract FlightSuretyData {
                             requireIsOperational
                             requireIsCallerAuthorized
     {
-        require(airlines[airline].isRegistered, 'the aireline is not registered');
+        require(airlines[airline].isRegistered, 'the airline is not registered');
 
         airlines[airline].totalFund += msg.value;
     }

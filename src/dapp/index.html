@@ -20,6 +20,9 @@
     </nav>
 
     <main class="container">
+
+        <!-- general status starts here -->
+
         <div id="display-wrapper-general" class="top-20">
         </div>
         <div class="row top-20">
@@ -30,10 +33,12 @@
         <HR align=center color=#987cb9 size=2 />
         <div class="margin-seperator" />
 
+        <!-- airline management starts here -->
+
         <div id="display-wrapper-airline" class="top-20">
         </div>
         <div class="top-20" style="text-align: right;">
-            <label class="form labelpadding">msg.sender (from) =</label> <input type="text" id="register-airline-caller-from">
+            <label class="form labelpadding">msg.sender (from) =</label> <input type="text" id="airline-caller-from">
         </div>
         <div class="row top-20">
             <btn class="btn btn-primary btnwidth" id="refresh-airlines">Refresh</btn>
@@ -52,13 +57,34 @@
             <label class="form labelpadding">address</label> <input type="text" id="approve-airline-address">
             <label class="form labelpadding">code</label> <select id="approve-airline-code"><option value="1">Agree</option><option value="2">Disagree</option></select>
         </div>
-        <div id="display-wrapper-airline-error" class="top-20">
+
+        <div class="margin-seperator" />
+        <HR align=center color=#987cb9 size=2 />
+        <div class="margin-seperator" />
+
+        <!-- flight management starts here -->
+
+        <div id="display-wrapper-flight" class="top-20">
+        </div>
+        <div class="top-20" style="text-align: right;">
+            <label class="form labelpadding">msg.sender (from) =</label> <input type="text" id="flight-caller-from">
+        </div>
+        <div class="row top-20">
+            <btn class="btn btn-primary btnwidth" id="refresh-flights">Refresh</btn>
+        </div>
+        <div class="row top-20">
+            <btn class="btn btn-primary btnwidth" id="register-flight">Register Flight</btn>
+            <label class="form labelpadding">airline</label> <input type="text" id="register-flight-airline">
+            <label class="form labelpadding">flight</label> <input type="text" id="register-flight-flight">
+            <label class="form labelpadding">timestamp: 12 hours later</label>
         </div>
 
         <div class="margin-seperator" />
         <HR align=center color=#987cb9 size=2 />
         <div class="margin-seperator" />
 
+        <!-- passenger operation starts here -->
+        
         <div id="display-wrapper-passenger" class="top-20">
         </div>
         <div class="row top-20">

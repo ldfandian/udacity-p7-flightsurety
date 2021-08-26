@@ -194,7 +194,7 @@ contract FlightSuretyApp {
                             requireFundedAirline
                             returns(bool success, uint256 votes)
     {
-        require(!flightSuretyData.isRegisteredAirline(airline), 'the aireline is already registered');
+        require(!flightSuretyData.isRegisteredAirline(airline), 'the airline is already registered');
         require(airlineRequest.isOpen && (airlineRequest.airline == airline), 'the airline is not in the waiting list');
 
         // 1. check status
@@ -340,7 +340,7 @@ contract FlightSuretyApp {
         bool isOpen;
         address airline;
         string flight;
-        uint256 flightTimestamp;        
+        uint256 flightTimestamp;        // the flight timestamp, specified as the number of seconds since the Unix epoch
         uint8 statusCode;
     }
     mapping(bytes32 => Flight) private flights;
@@ -416,9 +416,10 @@ contract FlightSuretyApp {
         require(index < flightIdArray.length, 'no more flight');
 
         bytes32 flightId = flightIdArray[index];
-        require(flights[flightId].isOpen, 'the flight is not open to insure');
+        Flight storage flightInfo = flights[flightId];
+        require(flightInfo.isOpen, 'the flight is not open to insure');
 
-        (airlineName, airlineFunded) = flightSuretyData.getAirlineInfomation(airline);
+        (airlineName, airlineFunded) = flightSuretyData.getAirlineInfomation(flightInfo.airline);
         Flight storage result = flights[flightId];
         return (result.airline, airlineName, airlineFunded, result.flight, result.flightTimestamp, result.statusCode);
     }                                

@@ -11,6 +11,7 @@ export default class Contract {
         this.initialize(callback);
         this.owner = null;
         this.airlines = new Object({ count: 0, data: [], pending: null });
+        this.flights = new Object({ count: 0, data: [] });
         this.passengers = [];
     }
 
@@ -20,7 +21,8 @@ export default class Contract {
             this.owner = accts[0];
             console.log(`owner=${this.owner}`);
 
-            await self.reloadAirlines(null);
+            await self.reloadAirlines();
+            await self.reloadFlights();
 
             callback();
         });
@@ -52,6 +54,7 @@ export default class Contract {
         if (from) {
             callerFrom = from;
         }
+        console.log(`getApiCaller: uses '${callerFrom}'`);
         return callerFrom;
     }
 
@@ -91,6 +94,33 @@ export default class Contract {
         this.airlines = airlineInfo;
     }
 
+    async reloadFlights() {
+        let flightInfo = new Object({
+            count: 0,
+            data: [],
+        });
+
+        // get the list of registered airlines
+        flightInfo.count = await this.flightSuretyApp.methods.getFlightCount().call({ from: this.owner });
+        if (flightInfo.count > 0) {
+            for (let i=0; i<flightInfo.count; i++) {
+                let result = await this.flightSuretyApp.methods.getFlightInfomation(i).call({ from: this.owner });
+                let flight = {
+                    airline: result.airline,
+                    airlineName: result.airlineName,
+                    airlineFunded: result.airlineFunded,
+                    flight: result.flight,
+                    flightTimestamp: result.flightTimestamp,
+                    statusCode: result.statusCode,
+                };
+                flightInfo.data.push(flight);
+            }
+        }
+
+        console.log(`reloadFlights: ${JSON.stringify(flightInfo)}`);
+        this.flights = flightInfo;
+    }
+
     registerAirline(airline, name, from, callback) {
         let caller = this.getApiCaller(from);
         this.flightSuretyApp.methods
@@ -105,6 +135,7 @@ export default class Contract {
         this.flightSuretyApp.methods
             .fundAirline(airline)
             .send({ from: caller, value: fund }, callback);
+        console.log(`fundAirline: airline=${airline}`);
     }
 
     approveAirline(airline, code, from, callback) {
@@ -112,5 +143,14 @@ export default class Contract {
         this.flightSuretyApp.methods
             .approveAirline(airline, code)
             .send({ from: caller, gas: 1000000 }, callback);
+        console.log(`approveAirline: airline=${airline}, code=${code}`);
+    }
+
+    registerFlight(airline, flight, timestamp, from, callback) {
+        let caller = this.getApiCaller(from);
+        this.flightSuretyApp.methods
+            .registerFlight(airline, flight, timestamp)
+            .send({ from: caller, gas: 1000000 }, callback);
+        console.log(`registerFlight: airline=${airline}, flight=${flight}, timestamp=${timestamp}`);
     }
 }
