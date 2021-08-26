@@ -636,11 +636,10 @@ contract FlightSuretyApp {
 
         // check the vote result
         if (oracleResponses[key].responses[statusCode].length >= ORACLE_MIN_RESPONSES) {
-
-            emit FlightStatusInfo(airline, flight, timestamp, statusCode);
-
             // Handle flight status as appropriate
             _processFlightStatus(airline, flight, timestamp, statusCode);
+
+            emit FlightStatusInfo(airline, flight, timestamp, statusCode);
         }
     }
 
