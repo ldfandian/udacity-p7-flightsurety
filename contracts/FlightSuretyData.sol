@@ -147,7 +147,7 @@ contract FlightSuretyData {
      * the following variable are airline related
      ****************************************************************/
 
-    uint256 public constant FUND_FEE_AIRLINE = 10 ether;        // Fee to be paid when registering oracle
+    uint256 public constant FUND_FEE_AIRLINE = 1 ether;        // Fee to be paid when registering oracle
 
     struct Airline {
         bool isRegistered;
@@ -197,7 +197,7 @@ contract FlightSuretyData {
     {
         require(airline != address(0), 'empty airline address');
         require(bytes(name).length > 0, 'the airline name is empty');
-        require(!airlines[airline].isRegistered, 'the aireline is already registered');
+        require(!airlines[airline].isRegistered, 'the airline is already registered');
 
         airlines[airline] = Airline({
             isRegistered: true,

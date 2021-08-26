@@ -16,6 +16,11 @@ body {
     margin-top: 20px;
 }
 
+.margin-seperator {
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
 h5 {
     color: #999999;
 }
@@ -31,6 +36,19 @@ section {
 
 .field-value {
     color: #0e7fa8;
+}
+
+.field-error {
+    color:red;
+}
+
+.btnwidth {
+    width: 150px;
+    height: 30px;
+}
+
+.labelpadding {
+    margin-left: 20px;
 }
 
 label.form {

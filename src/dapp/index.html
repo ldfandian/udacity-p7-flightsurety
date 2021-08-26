@@ -20,12 +20,53 @@
     </nav>
 
     <main class="container">
-
-        <div id="display-wrapper" class="top-20">
+        <div id="display-wrapper-general" class="top-20">
         </div>
         <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
+            <btn class="btn btn-primary btnwidth" id="refresh-general">Refresh</btn>
         </div>
+
+        <div class="margin-seperator" />
+        <HR align=center color=#987cb9 size=2 />
+        <div class="margin-seperator" />
+
+        <div id="display-wrapper-airline" class="top-20">
+        </div>
+        <div class="row top-20">
+            <btn class="btn btn-primary btnwidth" id="refresh-airlines">Refresh</btn>
+        </div>
+        <div class="row top-20">
+            <btn class="btn btn-primary btnwidth" id="register-airline">Register Airline</btn>
+            <label class="form labelpadding">address</label> <input type="text" id="register-airline-address">
+            <label class="form labelpadding">name</label> <input type="text" id="register-airline-name">
+        </div>
+        <div class="row top-20">
+            <btn class="btn btn-primary btnwidth" id="fund-airline">Fund Airline</btn>
+            <label class="form labelpadding">address</label> <input type="text" id="fund-airline-address">
+        </div>
+        <div class="row top-20">
+            <btn class="btn btn-primary btnwidth" id="approve-airline">Approve Airline</btn>
+            <label class="form labelpadding">address</label> <input type="text" id="approve-airline-address">
+            <label class="form labelpadding">code</label> <select id="approve-airline-code"><option value="1">Agree</option><option value="2">Disagree</option></select>
+        </div>
+        <div id="display-wrapper-airline-error" class="top-20">
+        </div>
+
+        <div class="margin-seperator" />
+        <HR align=center color=#987cb9 size=2 />
+        <div class="margin-seperator" />
+
+        <div id="display-wrapper-passenger" class="top-20">
+        </div>
+        <div class="row top-20">
+            <btn class="btn btn-primary btnwidth" id="submit-oracle">Submit to Oracles</btn>
+            <label class="form labelpadding">Flight</label> <input type="text" id="flight-number">
+        </div>
+
+        <div class="margin-seperator" />
+        <HR align=center color=#987cb9 size=2 />
+        <div class="margin-seperator" />
+
     </main>
 
 </body>

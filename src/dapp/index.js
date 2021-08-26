@@ -1,39 +1,101 @@
-
 import DOM from './dom';
 import Contract from './contract';
 import './flightsurety.css';
 
+function displayGeneralInfo(contract) {
+    contract.isOperational((error, result) => {
+        console.log(error, result);
+        let results = [];
+        results.push({ label: 'Operational Status', error: error, value: result });
+        results.push({ label: 'Current User', value: contract.owner })
+        display('display-wrapper-general', 'General Status', 'Check if contract is operational', results);
+        console.log(`displayGeneralInfo.callback: ${JSON.stringify(results)}`);
+    });
+}
+
+function displayAirlineInfo(contract) {
+    let results = [];
+    let error = undefined;
+    try {
+        let countAirlines = contract.airlines.count;
+        results.push({ label: '# of airlines', value: countAirlines});
+
+        if (countAirlines > 0) {
+            for (let i=0; i<countAirlines; i++) {
+                let airline = contract.airlines.data[i];
+                let message = `${airline.airline}, name='${airline.name}', isFunded=${airline.isFunded}`;
+                if (airline.isFunded) {
+                    results.push({ label: `+ airline ${i}`, value: message});
+                } else {
+                    results.push({ label: `- airline ${i}`, value: message});
+                }
+            }
+        }
+    } catch (err) {
+        results.push({ label: '# of airlines', error: err});
+    }
+    display('display-wrapper-airline', 'Airline Status', 'Check the airline status', results);
+}
 
 (async() => {
 
-    let result = null;
+    let contract = new Contract('localhost', async () => {
 
-    let contract = new Contract('localhost', () => {
-
-        // Read transaction
-        contract.isOperational((error, result) => {
-            console.log(error,result);
-            display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
+        // Overall status
+        displayGeneralInfo(contract);
+        DOM.elid('refresh-general').addEventListener('click', async () => {
+            displayGeneralInfo(contract);
         });
-    
 
-        // User-submitted transaction
+        // Airline status
+        displayAirlineInfo(contract);
+        DOM.elid('refresh-airlines').addEventListener('click', async () => {
+            await contract.reloadAirlines();
+            displayAirlineInfo(contract);
+        });
+        DOM.elid('register-airline').addEventListener('click', () => {
+            let address = DOM.elid('register-airline-address').value;
+            let name = DOM.elid('register-airline-name').value;
+            contract.registerAirline(address, name, async (error, result) => {
+                console.log(error, result);
+                if (error) {
+                    displayError(error);
+                } else {
+                    await contract.reloadAirlines();
+                    displayAirlineInfo(contract);
+                }
+            });
+        });
+        DOM.elid('fund-airline').addEventListener('click', () => {
+            let address = DOM.elid('fund-airline-address').value;
+            contract.fundAirline(address, async (error, result) => {
+                console.log(error, result);
+                if (error) {
+                    displayError(error);
+                } else {
+                    await contract.reloadAirlines();
+                    displayAirlineInfo(contract);
+                }
+            });
+        });
+
+        // Passenger transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {
             let flight = DOM.elid('flight-number').value;
             // Write transaction
             contract.fetchFlightStatus(flight, (error, result) => {
-                display('Oracles', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
+                display("display-wrapper-passenger", 'Passenger Status', 'Check the passenger\'s status', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
             });
         })
+        display("display-wrapper-passenger", 'Passenger Status', 'Check the passenger\'s status', [ { label: 'Fetch Flight Status', value: 'TODO'} ]);
     
     });
-    
 
 })();
 
 
-function display(title, description, results) {
-    let displayDiv = DOM.elid("display-wrapper");
+function display(container, title, description, results) {
+    let displayDiv = DOM.elid(container);
     let section = DOM.section();
     section.appendChild(DOM.h2(title));
     section.appendChild(DOM.h5(description));
@@ -43,13 +105,10 @@ function display(title, description, results) {
         row.appendChild(DOM.div({className: 'col-sm-8 field-value'}, result.error ? String(result.error) : String(result.value)));
         section.appendChild(row);
     })
-    displayDiv.append(section);
-
+    displayDiv.replaceChildren(section);
 }
 
-
-
-
-
-
+function displayError(error) {
+    alert(error);
+}
 

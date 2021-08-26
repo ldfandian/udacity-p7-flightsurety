@@ -43,6 +43,8 @@ contract FlightSuretyApp {
     /*                                       FUNCTION MODIFIERS                                 */
     /********************************************************************************************/
 
+// region modifier
+
     // Modifiers help avoid duplication of code. They are typically used to validate something
     // before a function is allowed to be executed.
 
@@ -55,15 +57,6 @@ contract FlightSuretyApp {
     {
         require(isOperational(), "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
-    }
-
-    /**
-    * @dev Modifier that requires the "ContractOwner" account to be the function caller
-    */
-    modifier requireContractOwner()
-    {
-        require(msg.sender == contractOwner, "Caller is not contract owner");
-        _;
     }
 
     /**
@@ -101,19 +94,21 @@ contract FlightSuretyApp {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
+// endregion
+
 // region AIRLINE MANAGEMENT
 
     /*****************************************************************
      * the following variales are airline related
      ****************************************************************/
      
-    uint8 public constant MP_AIRLINE_COUNT = 5;                 // the 5th airline need to be approved by 50+ existing airline
+    uint8 public constant MP_AIRLINE_COUNT = 4;                 // the 5th airline need to be approved by 50+ existing airline
     uint8 public constant MP_AIRLINE_APPROVE_PERCENT = 50;      // need 50% of the existing airlines to approve
 
     // 0: unknown, 1: agree, 2: disagree, (others we don't care for now.)
     uint8 public constant MP_AIRLINE_APPROVE_CODE_AGREE = 1;
 
-    uint256 public constant FUND_FEE_AIRLINE = 10 ether;        // Fee to be paid when registering oracle
+    uint256 public constant FUND_FEE_AIRLINE = 1 ether;        // Fee to be paid when registering oracle
 
     // struct to store the multi-party consensus request info
     struct ApproveResponse {
@@ -149,7 +144,7 @@ contract FlightSuretyApp {
     {
         require(airline != address(0), 'bad airline address');
         require(bytes(name).length > 0, 'airline name is empty');
-        require(!flightSuretyData.isRegisteredAirline(airline), 'the aireline is already registered');
+        require(!flightSuretyData.isRegisteredAirline(airline), 'the airline is already registered');
 
         uint count = flightSuretyData.countOfAirlines();
         if (count < MP_AIRLINE_COUNT) {
