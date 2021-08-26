@@ -117,12 +117,12 @@ contract FlightSuretyApp {
     }
     struct AirlineRequest {
         bool isOpen;                                    // the request is still valid
+        address airline;                                // the airline to be approved
         string name;                                    // name of the airline
         uint256 time;                                   // blockhash time of the new airline request
         ApproveResponse[] approvalResult;               // the result of the approvals, use uint8 for future reasonCode extension
     }
-    mapping(address => AirlineRequest) private airlineRequests;         // all the registered airlines
-    address[] public airlineRequestKeys;                                // all the registered airlines
+    AirlineRequest private airlineRequest;              // the need-approval airline (to simply the case, only 1 airline is allowed to wait here)
 
     event AirlineApproveRequest(address airline, address registrant, string name);  // the event to request other airlines to approve a new airline
     event AirlineApproveResponse(address airline, address approval, uint code);     // the event to tell one airlines has approved a new airline
@@ -156,18 +156,18 @@ contract FlightSuretyApp {
                 emit AirlineRegistered(airline, msg.sender, name);
             }
         } else {
-            require(!airlineRequests[airline].isOpen, 'the airline is already in the waiting list');
+            require(!airlineRequest.isOpen, 'Another airline is waiting for approval, please wait');
 
             // add it into the request list
-            airlineRequests[airline].isOpen = true;
-            airlineRequests[airline].name = name;
-            airlineRequests[airline].time = now;
-            airlineRequests[airline].approvalResult.length = 0; // clear existing votes, if any
-            airlineRequests[airline].approvalResult.push(ApproveResponse({
+            airlineRequest.isOpen = true;
+            airlineRequest.airline = airline;
+            airlineRequest.name = name;
+            airlineRequest.time = now;
+            airlineRequest.approvalResult.length = 0; // clear existing votes, if any
+            airlineRequest.approvalResult.push(ApproveResponse({
                 stakeholder: msg.sender,
                 code: MP_AIRLINE_APPROVE_CODE_AGREE
             }));
-            airlineRequestKeys.push(airline);
 
             votes = 1;
             success = false;
@@ -195,11 +195,11 @@ contract FlightSuretyApp {
                             returns(bool success, uint256 votes)
     {
         require(!flightSuretyData.isRegisteredAirline(airline), 'the aireline is already registered');
-        require(airlineRequests[airline].isOpen, 'the airline is not in the waiting list');
+        require(airlineRequest.isOpen && (airlineRequest.airline == airline), 'the airline is not in the waiting list');
 
         // 1. check status
         uint voteSameCode = 1; // the caller itself counts
-        ApproveResponse[] storage responses = airlineRequests[airline].approvalResult;
+        ApproveResponse[] storage responses = airlineRequest.approvalResult;
         for (uint i=0; i<responses.length; i++) {
             // check if the msg.sender has alread voted before
             require(responses[i].stakeholder != msg.sender, "Caller has already approved.");
@@ -209,48 +209,37 @@ contract FlightSuretyApp {
                 voteSameCode ++;
             }
         }
+        success = false;
+        votes = responses.length + 1;
 
         // 2. add the vote response of the approval airline
         // store the response data, as the approval history
-        airlineRequests[airline].approvalResult.push(ApproveResponse({
+        airlineRequest.approvalResult.push(ApproveResponse({
             stakeholder: msg.sender,
             code: code
         }));
-        success = false;
-        votes = responses.length + 1;
         emit AirlineApproveResponse(airline, msg.sender, code);
 
         // 3. check if we already have a consensus
         uint countOfAirlines = flightSuretyData.countOfAirlines();
         uint percent = voteSameCode.mul(100).div(countOfAirlines);
         if (percent >= MP_AIRLINE_APPROVE_PERCENT) {
-            // close the vote, as we already have a consensus
-            airlineRequests[airline].isOpen = false;
-
             // if the consensus is "agree", add it to the registered airline list
             if (code == MP_AIRLINE_APPROVE_CODE_AGREE) {
-                string storage name = airlineRequests[airline].name;
-                success = flightSuretyData.registerAirline(airline, name);
+                success = flightSuretyData.registerAirline(airline, airlineRequest.name);
                 if (success) {
                     // for multi-party consensus, we use the first element first and fall back to use msg.sender if not present
-                    address registrant = airlineRequests[airline].approvalResult[0].stakeholder;
-                    emit AirlineRegistered(airline, registrant, name);
+                    address registrant = airlineRequest.approvalResult[0].stakeholder;
+                    emit AirlineRegistered(airline, registrant, airlineRequest.name);
                 }
             }
 
-            // remove the airline address from the airline key
-            bool foundKey = false;
-            for (uint index=0; index<airlineRequestKeys.length; index++) {
-                if (airlineRequestKeys[index] == airline) {
-                    if (index != (airlineRequestKeys.length-1)) {
-                        airlineRequestKeys[index] = airlineRequestKeys[airlineRequestKeys.length-1];
-                    }
-                    airlineRequestKeys.length --;
-                    foundKey = true;
-                    break;
-                }
-            }
-            require(foundKey, 'runtim error: something wrong with the airline key');
+            // close the vote, as we already have a consensus
+            airlineRequest.isOpen = false;
+            airlineRequest.airline = address(0);
+            airlineRequest.name = '';
+            airlineRequest.time = 0;
+            airlineRequest.approvalResult.length = 0; // clear existing votes, if any
         }
 
         return (success, votes);
@@ -275,6 +264,31 @@ contract FlightSuretyApp {
         require(msg.value >= FUND_FEE_AIRLINE, 'Not paied enough to fund the airline');
 
         flightSuretyData.fundAirline.value(msg.value)(airline);
+    }
+
+    /**
+     * @dev Get the infomation of one particular airline
+     */   
+    function getAirlinePendingRequest
+                            (
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            returns(uint8 count, address airline, string name, uint256 votes, uint256 agree)
+    {
+        if (airlineRequest.isOpen) {
+            votes = airlineRequest.approvalResult.length;
+            agree = 0;
+            for (uint i=0; i<votes; i++) {
+                if (airlineRequest.approvalResult[i].code == MP_AIRLINE_APPROVE_CODE_AGREE) {
+                    agree ++;
+                }
+            }
+            return (1, airlineRequest.airline, airlineRequest.name, votes, agree);
+        } else {
+            return (0, address(0), '', 0, 0);
+        }
     }
 
     /**

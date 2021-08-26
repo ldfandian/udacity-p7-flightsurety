@@ -19,7 +19,6 @@ function displayAirlineInfo(contract) {
     try {
         let countAirlines = contract.airlines.count;
         results.push({ label: '# of airlines', value: countAirlines});
-
         if (countAirlines > 0) {
             for (let i=0; i<countAirlines; i++) {
                 let airline = contract.airlines.data[i];
@@ -31,10 +30,18 @@ function displayAirlineInfo(contract) {
                 }
             }
         }
+
+        if (contract.airlines.pending != null) {
+            let airline = contract.airlines.pending;
+            let message = `${airline.airline}, name='${airline.name}', agree/votes=${airline.agree}/${airline.votes}`;
+            results.push({ label: `? pending airline`, value: message});
+        } else {
+            results.push({ label: `no pending airline`, value: ''});
+        }
     } catch (err) {
         results.push({ label: '# of airlines', error: err});
     }
-    display('display-wrapper-airline', 'Airline Status', 'Check the airline status', results);
+    display('display-wrapper-airline', 'Airline Management', 'Check the airline status', results);
 }
 
 (async() => {
@@ -56,7 +63,9 @@ function displayAirlineInfo(contract) {
         DOM.elid('register-airline').addEventListener('click', () => {
             let address = DOM.elid('register-airline-address').value;
             let name = DOM.elid('register-airline-name').value;
-            contract.registerAirline(address, name, async (error, result) => {
+            let from = DOM.elid('register-airline-caller-from').value;
+
+            contract.registerAirline(address, name, from, async (error, result) => {
                 console.log(error, result);
                 if (error) {
                     displayError(error);
@@ -68,7 +77,24 @@ function displayAirlineInfo(contract) {
         });
         DOM.elid('fund-airline').addEventListener('click', () => {
             let address = DOM.elid('fund-airline-address').value;
-            contract.fundAirline(address, async (error, result) => {
+            let from = DOM.elid('register-airline-caller-from').value;
+
+            contract.fundAirline(address, from, async (error, result) => {
+                console.log(error, result);
+                if (error) {
+                    displayError(error);
+                } else {
+                    await contract.reloadAirlines();
+                    displayAirlineInfo(contract);
+                }
+            });
+        });
+        DOM.elid('approve-airline').addEventListener('click', () => {
+            let address = DOM.elid('approve-airline-address').value;
+            let code = DOM.elid('approve-airline-code').value;
+            let from = DOM.elid('register-airline-caller-from').value;
+
+            contract.approveAirline(address, code, from, async (error, result) => {
                 console.log(error, result);
                 if (error) {
                     displayError(error);
@@ -84,10 +110,10 @@ function displayAirlineInfo(contract) {
             let flight = DOM.elid('flight-number').value;
             // Write transaction
             contract.fetchFlightStatus(flight, (error, result) => {
-                display("display-wrapper-passenger", 'Passenger Status', 'Check the passenger\'s status', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
+                display("display-wrapper-passenger", 'Passenger Operation', 'Check the passenger\'s status', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp} ]);
             });
         })
-        display("display-wrapper-passenger", 'Passenger Status', 'Check the passenger\'s status', [ { label: 'Fetch Flight Status', value: 'TODO'} ]);
+        display("display-wrapper-passenger", 'Passenger Operation', 'Check the passenger\'s status', [ { label: 'Fetch Flight Status', value: 'TODO'} ]);
     
     });
 
