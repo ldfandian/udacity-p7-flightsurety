@@ -122,6 +122,7 @@ contract FlightSuretyApp {
         ApproveResponse[] approvalResult;               // the result of the approvals, use uint8 for future reasonCode extension
     }
     mapping(address => AirlineRequest) private airlineRequests;         // all the registered airlines
+    address[] public airlineRequestKeys;                                // all the registered airlines
 
     event AirlineApproveRequest(address airline, address registrant, string name);  // the event to request other airlines to approve a new airline
     event AirlineApproveResponse(address airline, address approval, uint code);     // the event to tell one airlines has approved a new airline
@@ -161,10 +162,13 @@ contract FlightSuretyApp {
             airlineRequests[airline].isOpen = true;
             airlineRequests[airline].name = name;
             airlineRequests[airline].time = now;
+            airlineRequests[airline].approvalResult.length = 0; // clear existing votes, if any
             airlineRequests[airline].approvalResult.push(ApproveResponse({
                 stakeholder: msg.sender,
                 code: MP_AIRLINE_APPROVE_CODE_AGREE
             }));
+            airlineRequestKeys.push(airline);
+
             votes = 1;
             success = false;
 
@@ -193,44 +197,60 @@ contract FlightSuretyApp {
         require(!flightSuretyData.isRegisteredAirline(airline), 'the aireline is already registered');
         require(airlineRequests[airline].isOpen, 'the airline is not in the waiting list');
 
-        // check if the msg.sender has alread voted before
-        // check current response list for its status
-        uint agreeCount = 0;
+        // 1. check status
+        uint voteSameCode = 1; // the caller itself counts
         ApproveResponse[] storage responses = airlineRequests[airline].approvalResult;
         for (uint i=0; i<responses.length; i++) {
+            // check if the msg.sender has alread voted before
             require(responses[i].stakeholder != msg.sender, "Caller has already approved.");
 
-            if (responses[i].code == MP_AIRLINE_APPROVE_CODE_AGREE) {
-                agreeCount ++;
+            // check current response list for its status
+            if (responses[i].code == code) {
+                voteSameCode ++;
             }
         }
 
+        // 2. add the vote response of the approval airline
         // store the response data, as the approval history
-        votes = responses.length + 1;
         airlineRequests[airline].approvalResult.push(ApproveResponse({
             stakeholder: msg.sender,
             code: code
         }));
         success = false;
+        votes = responses.length + 1;
         emit AirlineApproveResponse(airline, msg.sender, code);
 
-        // add the vote response of the approval airline
-        if (code == MP_AIRLINE_APPROVE_CODE_AGREE) {
-            agreeCount ++;
+        // 3. check if we already have a consensus
+        uint countOfAirlines = flightSuretyData.countOfAirlines();
+        uint percent = voteSameCode.mul(100).div(countOfAirlines);
+        if (percent >= MP_AIRLINE_APPROVE_PERCENT) {
+            // close the vote, as we already have a consensus
+            airlineRequests[airline].isOpen = false;
 
-            uint countOfAirlines = flightSuretyData.countOfAirlines();
-            uint percent = agreeCount.mul(100).div(countOfAirlines);
-            if (percent >= MP_AIRLINE_APPROVE_PERCENT) {
-                airlineRequests[airline].isOpen = false;
-
-                // for multi-party consensus, we use the first element first and fall back to use msg.sender if not present
-                address registrant = airlineRequests[airline].approvalResult[0].stakeholder;
+            // if the consensus is "agree", add it to the registered airline list
+            if (code == MP_AIRLINE_APPROVE_CODE_AGREE) {
                 string storage name = airlineRequests[airline].name;
                 success = flightSuretyData.registerAirline(airline, name);
                 if (success) {
+                    // for multi-party consensus, we use the first element first and fall back to use msg.sender if not present
+                    address registrant = airlineRequests[airline].approvalResult[0].stakeholder;
                     emit AirlineRegistered(airline, registrant, name);
                 }
             }
+
+            // remove the airline address from the airline key
+            bool foundKey = false;
+            for (uint index=0; index<airlineRequestKeys.length; index++) {
+                if (airlineRequestKeys[index] == airline) {
+                    if (index != (airlineRequestKeys.length-1)) {
+                        airlineRequestKeys[index] = airlineRequestKeys[airlineRequestKeys.length-1];
+                    }
+                    airlineRequestKeys.length --;
+                    foundKey = true;
+                    break;
+                }
+            }
+            require(foundKey, 'runtim error: something wrong with the airline key');
         }
 
         return (success, votes);
