@@ -267,7 +267,7 @@ contract FlightSuretyApp {
     }
 
     /**
-     * @dev Get the infomation of one particular airline
+     * @dev Get the Information of one particular airline
      */   
     function getAirlinePendingRequest
                             (
@@ -292,18 +292,18 @@ contract FlightSuretyApp {
     }
 
     /**
-     * @dev Get the infomation of one particular airline
+     * @dev Get the Information of one particular airline
      */   
-    function getAirlineInfomationByIndex
+    function getAirlineInfoByIndex
                             (
-                                uint256 index
+                                uint32 index
                             )
                             external
                             view
                             requireIsOperational
                             returns(address airline, string name, bool isFunded)
     {
-        return flightSuretyData.getAirlineInfomationByIndex(index);
+        return flightSuretyData.getAirlineInfoByIndex(index);
     }
 
     /**
@@ -315,7 +315,7 @@ contract FlightSuretyApp {
                             external
                             view
                             requireIsOperational
-                            returns(uint256)
+                            returns(uint32)
     {
         return flightSuretyData.countOfAirlines();
     }
@@ -406,12 +406,11 @@ contract FlightSuretyApp {
     /**
      * retrieve info of the index-th active flight
      */
-    function getFlightInfomation(uint256 index)
+    function getFlightInfoByIndex(uint256 index)
                                 external
                                 view
                                 returns(
-                                    address airline, string airlineName, bool airlineFunded,
-                                    string flight, uint256 flightTimestamp, uint8 statusCode)
+                                    address airline, string flight, uint256 flightTimestamp, uint8 statusCode)
     {
         require(index < flightIdArray.length, 'no more flight');
 
@@ -419,9 +418,8 @@ contract FlightSuretyApp {
         Flight storage flightInfo = flights[flightId];
         require(flightInfo.isOpen, 'the flight is not open to insure');
 
-        (airlineName, airlineFunded) = flightSuretyData.getAirlineInfomation(flightInfo.airline);
         Flight storage result = flights[flightId];
-        return (result.airline, airlineName, airlineFunded, result.flight, result.flightTimestamp, result.statusCode);
+        return (result.airline, result.flight, result.flightTimestamp, result.statusCode);
     }                                
     
     /**
@@ -458,6 +456,7 @@ contract FlightSuretyApp {
     {
         bytes32 flightId = _getFlightKey(airline, flight, timestamp);
         require(flights[flightId].isOpen, 'the flight does not exists');
+        require(flights[flightId].statusCode == STATUS_CODE_UNKNOWN, 'the flight already has a status');
 
         uint8 index = _getRandomIndex(msg.sender);
 
@@ -533,6 +532,39 @@ contract FlightSuretyApp {
         emit InsurancePaidbackCredit(passenger, airline, flight, timestamp);
     }
 
+    /**
+     * get the passender's current balance
+     */
+    function getPassengerInsurances
+                            (
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            returns (uint8 count, uint256 balance)
+    {
+        return flightSuretyData.getPassengerInsurances(msg.sender);
+    }
+    
+    /**
+     * get the passender's insurance info
+     */
+    function getPassengerInsuranceByIndex
+                            (
+                                uint8 index
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            returns (
+                                address airline, string flight, uint256 flightTimestamp,
+                                uint256 insuranceFund, uint256 insurancePayback
+                            )
+    {
+        return flightSuretyData.getPassengerInsuranceByIndex(msg.sender, index);
+    }
+
+    // passenger withdraw
     function passengerWithdraw
                             (
                                 uint256 amount
@@ -545,7 +577,6 @@ contract FlightSuretyApp {
         flightSuretyData.payWithdraw(msg.sender, amount);
         emit PassengerWithdraw(msg.sender);
     }
-      
 
 // endregion
 

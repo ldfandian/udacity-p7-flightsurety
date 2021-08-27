@@ -55,6 +55,12 @@ label.form {
     font-size: 14px;
     margin-right: 20px;
 }
+
 input {
     margin-right: 30px;
+}
+
+select {
+    margin-right: 30px;
+    min-width: 100px;
 }

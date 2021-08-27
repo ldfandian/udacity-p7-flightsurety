@@ -26,7 +26,7 @@ function getOracleAccount(accounts, index) {
 
 // utils func to check if an oracle match the specified index
 function matchOracleIndexes(oracleAddress, messageIndex) {
-  let oracleInfo = oracleAddrToIndexes[oracleAddress];
+  let oracleInfo = oracleAddrToIndexes.get(oracleAddress);
   let contractIndexes = oracleInfo.contractIndexes;
 
   let match = (contractIndexes[0] == messageIndex) || (contractIndexes[1] == messageIndex) || (contractIndexes[2] == messageIndex);
@@ -52,34 +52,41 @@ function matchOracleIndexes(oracleAddress, messageIndex) {
     console.log(`Registered oracle ${index}('${account}'): indexes: ${indexes[0]}, ${indexes[1]}, ${indexes[2]}`)
 
     // store the oracle info
-    oracleAddrToIndexes[account] = {
+    oracleAddrToIndexes.set(account, {
       index: index,
       address: account,
       contractIndexes: indexes
-    }
+    });
   }
 })();
 
 // handle the OracleRequest event
-flightSuretyApp.events.OracleRequest({ fromBlock: 0 }, function (error, event) {
+flightSuretyApp.events.OracleRequest(function (error, event) {
   if (error) {
     console.log(`Found OracleRequest error: ${error}`);
     return;
   }
 
-  console.log(`Found OracleRequest event: ${event}`)
+  console.log(`Found OracleRequest event: ${JSON.stringify(event)}`)
 
-  // let's generate a random status code among (10, 20, 30, 40, 50)
+  // let's generate a random status code among (0, 10, 20, 30, 40, 50)
   //   Note: Flight status codees
+  //     uint8 private constant STATUS_CODE_UNKNOWN = 0;
   //     uint8 private constant STATUS_CODE_ON_TIME = 10;
   //     uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
   //     uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
   //     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
   //     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
-  let randomStatusCode = Math.floor((Math.random() * 5) + 1) * 10;
+  let randomStatusCode;
+  if (Math.random() > 0.5) { // for test purpose, we increase the possibility of airline delay
+    randomStatusCode = Math.floor(Math.random() * 6) * 10;
+  } else {
+    randomStatusCode = 20;
+  }
+  console.log(`generated random status code = ${randomStatusCode}`);
 
   // event OracleRequest(uint8 index, address airline, string flight, uint256 timestamp);
-  let targetIndex = event.returnValues.index;
+  let targetIndex = Number(event.returnValues.index);
   let targetAirline = event.returnValues.airline;
   let targetFlight = event.returnValues.flight;
   let targetTimestamp = event.returnValues.timestamp;
@@ -112,7 +119,7 @@ flightSuretyApp.events.FlightStatusInfo(function (error, event) {
     return;
   }
 
-  console.log(`Found FlightStatusInfo event: airline='${event.airline}', flight='${event.flight}', timestamp=${event.timestamp}, statusCode=${event.statusCode}`);
+  console.log(`Found FlightStatusInfo event: airline='${event.returnValues.airline}', flight='${event.returnValues.flight}', timestamp=${event.returnValues.timestamp}, statusCode=${event.returnValues.status}`);
 })
 
 // prepare the dummy http server

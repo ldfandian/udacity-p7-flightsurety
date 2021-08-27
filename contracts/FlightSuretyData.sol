@@ -227,35 +227,13 @@ contract FlightSuretyData {
     }
 
     /**
-     * @dev Get the infomation of one particular airline
+     * @dev Get the Information of one particular airline
      *      Can only be called from FlightSuretyApp contract
      *
      */   
-    function getAirlineInfomation
+    function getAirlineInfoByIndex
                             (
-                                address airline
-                            )
-                            external
-                            view
-                            requireIsOperational
-                            returns(string name, bool isFunded)
-    {
-        require(airlines[airline].isRegistered, 'the airline is not registered');
-
-        return (
-            airlines[airline].name,
-            (airlines[airline].totalFund >= FUND_FEE_AIRLINE)
-        );
-    }
-
-    /**
-     * @dev Get the infomation of one particular airline
-     *      Can only be called from FlightSuretyApp contract
-     *
-     */   
-    function getAirlineInfomationByIndex
-                            (
-                                uint256 index
+                                uint32 index
                             )
                             external
                             view
@@ -283,9 +261,9 @@ contract FlightSuretyData {
                             external
                             view
                             requireIsOperational
-                            returns(uint256)
+                            returns(uint32)
     {
-        return airlineAddresses.length;
+        return (uint32)(airlineAddresses.length);
     }
 
    /**
@@ -392,11 +370,11 @@ contract FlightSuretyData {
         bytes32 flightKey = _getFlightKey(airline, flight, timestamp);
 
         // let's find the insurance
-        bool foundInsurance = false;
+        bool success = false;
         InsuranceInfo[] storage insurances = passengerInsurance[passenger];
         for (uint index=0; index<insurances.length; index++) {
             if (insurances[index].flightKey == flightKey) {
-                foundInsurance = true;
+                success = true;
 
                 // refund the passenger
                 passengerCredits[passenger] += insurances[index].insurancePayback;
@@ -415,9 +393,57 @@ contract FlightSuretyData {
                 break;
             }
         }
-        require(foundInsurance, 'the insurance is not found (or maybe has beed paid back)');
+        require(success, 'the insurance is not found (or maybe has beed paid back)');
     }
     
+    /**
+     * get the passender's current balance
+     *      Can only be called from FlightSuretyApp contract
+     */
+    function getPassengerInsurances
+                            (
+                                address passenger
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            requireIsCallerAuthorized
+                            returns (uint8 count, uint256 balance)
+    {
+        // check
+        require(passenger != address(0), 'invalid passenger');
+
+        count = (uint8)(passengerInsurance[passenger].length);
+        balance = passengerCredits[passenger];
+    }
+    
+    /**
+     * get the passender's insurance info
+     *      Can only be called from FlightSuretyApp contract
+     */
+    function getPassengerInsuranceByIndex
+                            (
+                                address passenger,
+                                uint8 index
+                            )
+                            external
+                            view
+                            requireIsOperational
+                            requireIsCallerAuthorized
+                            returns (address airline, string flight, uint256 flightTimestamp,
+                                uint256 insuranceFund, uint256 insurancePayback)
+    {
+        require(passenger != address(0), 'invalid passenger');
+
+        InsuranceInfo[] storage infos = passengerInsurance[passenger];
+        require(infos.length > index, 'invalid index');
+        InsuranceInfo storage info = infos[index];
+        return (
+            info.airline, info.flight, info.flightTimestamp,
+            info.insuranceFund, info.insurancePayback
+        );
+    }
+
     /**
      *  @dev Transfers eligible payout funds to insuree
      *      Can only be called from FlightSuretyApp contract
