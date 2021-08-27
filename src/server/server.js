@@ -10,7 +10,7 @@ let config = Config['localhost'];
 let web3 = new Web3(new Web3.providers.WebsocketProvider(config.url.replace('http', 'ws')));
 let flightSuretyApp = new web3.eth.Contract(FlightSuretyApp.abi, config.appAddress);
 
-const TEST_ORACLE_COUNT = 20;
+const TEST_ORACLE_COUNT = 30;
 const TEST_ORACLE_ACCOUNT_START_INDEX = 20;
 
 let oracleAddrToIndexes = new Map();

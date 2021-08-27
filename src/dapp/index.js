@@ -215,6 +215,7 @@ function displayPassengerInfo(contract) {
         fillOptionsPassengerList(contract, 'passenger-caller-from');
         displayPassengerInfo(contract);
         DOM.elid('refresh-passenger').addEventListener('click', async () => {
+            await contract.reloadFlights();
             await contract.reloadPassengerInfo();
             displayPassengerInfo(contract);
         });

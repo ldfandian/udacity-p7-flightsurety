@@ -2,6 +2,8 @@ import FlightSuretyApp from '../../build/contracts/FlightSuretyApp.json';
 import Config from './config.json';
 import Web3 from 'web3';
 
+const FUND_AIRLINE_FEE = "10";
+
 export default class Contract {
     constructor(network, callback) {
 
@@ -26,7 +28,7 @@ export default class Contract {
     initialize(callback) {
         let self = this;
         this.web3.eth.getAccounts(async (error, accts) => {
-            if (accts.length < 40) {
+            if (accts.length < 50) {
                 throw "need more than 40 test accounts for the test dapp to run"
             }
 
@@ -222,12 +224,12 @@ export default class Contract {
     }
 
     fundAirline(airline, from, callback) {
-        let fund = Web3.utils.toWei("1", "ether");
+        let fund = Web3.utils.toWei(FUND_AIRLINE_FEE, "ether");
         let caller = this.getApiCaller(from);
         let promise = this.flightSuretyApp.methods
             .fundAirline(airline)
             .send({ from: caller, value: fund }, callback);
-        console.log(`fundAirline: airline=${airline}`);
+        console.log(`fundAirline: airline=${airline}, fund=${fund} wei`);
         return promise;
     }
 

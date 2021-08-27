@@ -36,7 +36,12 @@ contract FlightSuretyApp {
                                 public 
     {
         contractOwner = msg.sender;
+
+        require(dataContract != address(0), 'dataContract is empty');
         flightSuretyData = FlightSuretyData(dataContract);
+
+        fundFeePerAirline = flightSuretyData.FUND_FEE_AIRLINE();
+        require(fundFeePerAirline >= (1 ether), 'please increase the airline fund');
     }
 
     /********************************************************************************************/
@@ -108,7 +113,7 @@ contract FlightSuretyApp {
     // 0: unknown, 1: agree, 2: disagree, (others we don't care for now.)
     uint8 public constant MP_AIRLINE_APPROVE_CODE_AGREE = 1;
 
-    uint256 public constant FUND_FEE_AIRLINE = 1 ether;        // Fee to be paid when registering oracle
+    uint256 public fundFeePerAirline;                   // Fee to be paid to make one airline effective/funded
 
     // struct to store the multi-party consensus request info
     struct ApproveResponse {
@@ -261,7 +266,7 @@ contract FlightSuretyApp {
                             requireRegisteredAirline
     {
         require(airline != address(0), 'invalid airline');
-        require(msg.value >= FUND_FEE_AIRLINE, 'Not paied enough to fund the airline');
+        require(msg.value >= fundFeePerAirline, 'Not paied enough to fund the airline');
 
         flightSuretyData.fundAirline.value(msg.value)(airline);
     }
@@ -474,7 +479,7 @@ contract FlightSuretyApp {
 
 // region Insurance MANAGEMENT
 
-    uint256 public constant FUND_FEE_FLIGHT_MAX = 1 ether;              // Fee to be paid when registering oracle
+    uint256 public constant INSURANCE_FEE_MAX = 1 ether;                // Max fee to be paid for one single insurance
 
     event PassengerBuyInsurance(address passenger, address airline, string flight, uint256 timestamp);
     event InsurancePaidbackCredit(address passenger, address airline, string flight, uint256 timestamp);
@@ -494,7 +499,7 @@ contract FlightSuretyApp {
                         requireIsOperational
     {
         require(passenger != address(0), 'invalid passenger');
-        require((msg.value > 0) && (msg.value <= FUND_FEE_FLIGHT_MAX), 'invalid payment for the flight insurance');
+        require((msg.value > 0) && (msg.value <= INSURANCE_FEE_MAX), 'invalid payment for the flight insurance');
 
         // validate it is a valid flight
         bytes32 flightId = _getFlightKey(airline, flight, timestamp);

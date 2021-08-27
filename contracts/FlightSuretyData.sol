@@ -147,7 +147,7 @@ contract FlightSuretyData {
      * the following variable are airline related
      ****************************************************************/
 
-    uint256 public constant FUND_FEE_AIRLINE = 1 ether;        // Fee to be paid when registering oracle
+    uint256 public constant FUND_FEE_AIRLINE = 10 ether;                // Fee to be paid to make one airline effective/funded
 
     struct Airline {
         bool isRegistered;
