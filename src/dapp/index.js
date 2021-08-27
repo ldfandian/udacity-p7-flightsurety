@@ -71,6 +71,18 @@ function displayFlightInfo(contract) {
     display('display-wrapper-flight', 'Flight Management', 'Check the flight status', results);
 }
 
+function getFlightIndex(contract, airline, flight, flightTimestamp) {
+    let countFlights = contract.flights.count;
+    for (let i=0; i<countFlights; i++) {
+        let one = contract.flights.data[i];
+        if ((one.airline == airline) && (one.flight == flight) && (one.flightTimestamp == flightTimestamp)) {
+            return i;
+        }
+    }
+    return undefined;
+}
+
+
 function fillOptionsPassengerList(contract, elid) {
     let countPassengers = contract.passengers.length;
     let displayDiv = DOM.elid(elid);
@@ -95,7 +107,18 @@ function displayPassengerInfo(contract) {
         let insurance = contract.currentInsurances.data[i];
         let message = formatFlightInfo(insurance.airline, insurance.airlineName, insurance.flight, insurance.flightTimestamp)
                         + ` => fund=${insurance.insuranceFund}, payback=${insurance.insurancePayback}`;
-        results.push({ label: `insurance #${i}`, value: message});
+        let flightIndex = getFlightIndex(contract, insurance.airline, insurance.flight, insurance.flightTimestamp);
+        let label = `insurance #${i}`;
+        if (flightIndex != undefined) {
+            let statusCode = contract.flights.data[flightIndex].statusCode;
+            message = `Flight #${flightIndex}: ${message}, flight status=${statusCode}`;
+            if (statusCode == 20) {
+                label = '($) ' + label;
+            }
+        } else {
+            message = `Flight N/A: ` + message;
+        }
+        results.push({ label: label, value: message});
     }
 
     display('display-wrapper-passenger', 'Passenger Operation', 'Check the passenger status', results);
