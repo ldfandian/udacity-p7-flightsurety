@@ -108,7 +108,7 @@ function displayPassengerInfo(contract) {
         let message = formatFlightInfo(insurance.airline, insurance.airlineName, insurance.flight, insurance.flightTimestamp)
                         + ` => fund=${insurance.insuranceFund}, payback=${insurance.insurancePayback}`;
         let flightIndex = getFlightIndex(contract, insurance.airline, insurance.flight, insurance.flightTimestamp);
-        let label = `insurance #${i}`;
+        let label = `insurance`;
         if (flightIndex != undefined) {
             let statusCode = contract.flights.data[flightIndex].statusCode;
             message = `Flight #${flightIndex}: ${message}, flight status=${statusCode}`;
@@ -261,7 +261,27 @@ function displayPassengerInfo(contract) {
 
             // let's do it
             contract.fetchFlightStatus(flight.airline, flight.flight, flight.flightTimestamp, reloadPassengerCallback);
-        });    
+        });
+        DOM.elid('claim-flight-refund').addEventListener('click', () => {
+            let flight = getFlightByInputElid(contract, 'claim-refund-flight-index');
+            if (!flight) {
+                displayError(`flight index is invalid. accept range: [0-${contract.flights.count})`);
+                return;
+            }
+
+            // let's do it
+            contract.claimInsurancePayback(flight.airline, flight.flight, flight.flightTimestamp, reloadPassengerCallback);
+        });
+        DOM.elid('passenger-withdraw-fund').addEventListener('click', () => {
+            let payAmount = DOM.elid('passenger-withdraw-amount').value;
+            if (!payAmount) {
+                displayError('please give an withdraw amount');
+                return;
+            }
+
+            // let's do it
+            contract.passengerWithdraw(payAmount, reloadPassengerCallback);
+        });
     });
 
 })();

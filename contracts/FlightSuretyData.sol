@@ -460,17 +460,17 @@ contract FlightSuretyData {
         // check
         require(passenger != address(0), 'invalid passenger');
         require(amount > 0, 'please specify the amount to withdraw');
-        require(passengerCredits[msg.sender] >= amount, 'User pays more than her/his credit');
+        require(passengerCredits[passenger] >= amount, 'User pays more than her/his credit');
 
         // effect
-        if (passengerCredits[msg.sender] == amount) {
-            delete passengerCredits[msg.sender];
+        if (passengerCredits[passenger] == amount) {
+            delete passengerCredits[passenger];
         } else {
-            passengerCredits[msg.sender] -= amount;
+            passengerCredits[passenger] -= amount;
         }
 
         // result
-        msg.sender.transfer(amount);
+        passenger.transfer(amount);
     }
 
 // endregion

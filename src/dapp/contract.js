@@ -264,4 +264,21 @@ export default class Contract {
             .send({ from: caller, gas: 1000000 }, callback);
         console.log(`fetchFlightStatus: airline=${airline}, flight=${flight}, timestamp=${timestamp}`);
     }
+
+    claimInsurancePayback(airline, flight, timestamp, callback) {
+        let caller = this.currentPassenger;
+        this.flightSuretyApp.methods
+            .claimInsurancePayback(caller, airline, flight, timestamp)
+            .send({ from: caller, gas: 1000000 }, callback);
+        console.log(`claimInsurancePayback: airline=${airline}, flight=${flight}, timestamp=${timestamp}`);
+    }
+
+    passengerWithdraw(amount, callback) {
+        let caller = this.currentPassenger;
+        let fund = Web3.utils.toWei(amount, "ether");
+        this.flightSuretyApp.methods
+            .passengerWithdraw(fund)
+            .send({ from: caller, gas: 1000000 }, callback);
+        console.log(`passengerWithdraw: amount=${fund} wei`);
+    }
 }
