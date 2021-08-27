@@ -26,7 +26,7 @@ var Config = async function(accounts) {
     let flightSuretyData = await FlightSuretyData.new(firstAirline, 'Air China (test)');
     let flightSuretyApp = await FlightSuretyApp.new(flightSuretyData.address);
     await flightSuretyData.authorizeContract(flightSuretyApp.address);
-
+    
     return {
         owner: owner,
         firstAirline: firstAirline,
