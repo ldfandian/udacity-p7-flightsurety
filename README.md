@@ -24,6 +24,8 @@ root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# truffle migrate
 ...
 
 ```
+** You can see the runlog: [truffle compile & truffle migrate](./runlog/truffle-compile-migrate.log)
+
 * 3. Pleae make sure you have at least 50+ accounts in your local ganache-cli blockchain. Also, I recommend that you have 1000 ethers for each local account, coz every airline registration takes 10 ethers.
 
 ## Develop Client

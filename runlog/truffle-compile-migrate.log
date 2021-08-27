@@ -1,0 +1,79 @@
+root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# truffle compile --all
+Compiling ./contracts/FlightSuretyApp.sol...
+Compiling ./contracts/FlightSuretyData.sol...
+Compiling ./contracts/Migrations.sol...
+Compiling ./node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol...
+Writing artifacts to ./build/contracts
+
+root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# truffle migrate --reset
+⚠️  Important ⚠️
+If you're using an HDWalletProvider, it must be Web3 1.0 enabled or your migration will hang.
+
+
+Starting migrations...
+======================
+> Network name:    'development'
+> Network id:      1337
+> Block gas limit: 6721975
+
+
+1_initial_migration.js
+======================
+
+   Deploying 'Migrations'
+   ----------------------
+   > transaction hash:    0xc0d2a8cb4e0d4883e05092925fa2190953f4d3cbd429725d17849a53178572ca
+   > Blocks: 0            Seconds: 0
+   > contract address:    0xD3f82Cc3D90B19E64950bE39Ef216Aa2875545b1
+   > account:             0xf1Ee211E9Fc527A80f71E25ee9aD46034709708C
+   > balance:             5.65906384
+   > gas used:            238594
+   > gas price:           20 gwei
+   > value sent:          0 ETH
+   > total cost:          0.00477188 ETH
+
+   > Saving artifacts
+   -------------------------------------
+   > Total cost:          0.00477188 ETH
+
+
+2_deploy_contracts.js
+=====================
+
+   Replacing 'FlightSuretyData'
+   ----------------------------
+   > transaction hash:    0xe0c615239e2518cb73c30c0c718100983a7a8839feb9b7e21081d6151e2370d6
+   > Blocks: 0            Seconds: 0
+   > contract address:    0x65Dfb55a231c8c9fE898ae373B96DAF3d242a44A
+   > account:             0xf1Ee211E9Fc527A80f71E25ee9aD46034709708C
+   > balance:             5.59425092
+   > gas used:            3240646
+   > gas price:           20 gwei
+   > value sent:          0 ETH
+   > total cost:          0.06481292 ETH
+
+
+   Replacing 'FlightSuretyApp'
+   ---------------------------
+   > transaction hash:    0x6ab0adabcb66057cf3e15185d232bc3747d97f02c6561f957a941f5fac87b699
+   > Blocks: 0            Seconds: 0
+   > contract address:    0x38D25510328E57d51579d98C97754BeC55853df8
+   > account:             0xf1Ee211E9Fc527A80f71E25ee9aD46034709708C
+   > balance:             5.4867664
+   > gas used:            5374226
+   > gas price:           20 gwei
+   > value sent:          0 ETH
+   > total cost:          0.10748452 ETH
+
+   > Saving artifacts
+   -------------------------------------
+   > Total cost:          0.17229744 ETH
+
+
+Summary
+=======
+> Total deployments:   3
+> Final cost:          0.17706932 ETH
+
+Authorize FlightSuretyApp(0x38D25510328E57d51579d98C97754BeC55853df8) to FlightSuretyData(0x65Dfb55a231c8c9fE898ae373B96DAF3d242a44A)
+root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# 
