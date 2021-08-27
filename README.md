@@ -6,39 +6,49 @@ FlightSurety is a sample application project for Udacity's Blockchain course.
 
 This repository contains Smart Contract code in Solidity (using Truffle), tests (also using Truffle), dApp scaffolding (using HTML, CSS and JS) and server app scaffolding.
 
-To install, download or clone the repo, then:
+* 1. For OS environment, you can find my Docker file at [Docker File](./.devcontainer/Dockerfile) ; Please take a look to see the basic package dependency.
+* 2. To install, download or clone the repo, then:
+```bash
+root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# truffle version
+Truffle v5.0.2 (core: 5.0.2)
+Solidity - ^0.4.24 (solc-js)
+Node v10.24.1
 
-`npm install`
-`truffle compile`
+root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# npm install
+...
+
+root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# truffle compile --all
+...
+
+root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# truffle migrate
+...
+
+```
+* 3. Pleae make sure you have at least 50+ accounts in your local ganache-cli blockchain. Also, I recommend that you have 1000 ethers for each local account, coz every airline registration takes 10 ethers.
 
 ## Develop Client
 
-To run truffle tests:
+* To use the dapp:
 
-`truffle test ./test/flightSurety.js`
-`truffle test ./test/oracles.js`
-
-To use the dapp:
-
-`truffle migrate`
 `npm run dapp`
 
-To view dapp:
+* To view dapp:
 
 `http://localhost:8000`
 
 ## Develop Server
 
+* To run oracles:
+
 `npm run server`
-`truffle test ./test/oracles.js`
 
-## Deploy
+## About Test
 
-To build dapp for prod:
-`npm run dapp:prod`
+* dapp client: the project mainly depends on dapp client to do manual test. please enjoy.
+** the screenshot of the dapp run is put at [runlog](./runlog/screenshot-localhost_8000-2021.08.28-00_32_20.png)
 
-Deploy the contents of the ./dapp folder
-
+* truffle test: you can run it, all test cases can pass, but test coverage is not good enough.
+** the run log of the truffle test is also put at [runlog](./runlog/truffle-test.log)
 
 ## Resources
 

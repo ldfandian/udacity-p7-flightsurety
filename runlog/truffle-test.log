@@ -1,0 +1,154 @@
+root@aac05338eec7:/mnt/devroot/src/udacity-p7-flightsurety# truffle test                   
+Using network 'development'.
+
+Authorize FlightSuretyApp(0x3A2aF3ad73b8C91c373643dE336b6Ba8D9F8cCA5) to FlightSuretyData(0xd785c0402D200Ab49511Bc73549f096ED669Dac0)
+
+
+  Contract: Flight Surety Tests
+    ✓ (multiparty) has correct initial isOperational() value (73ms)
+    ✓ (multiparty) can block access to setOperatingStatus() for non-Contract Owner account (67ms)
+    ✓ (multiparty) can allow access to setOperatingStatus() for Contract Owner account (203ms)
+    ✓ (multiparty) can block access to functions using requireIsOperational when operating status is false (359ms)
+    ✓ (airline) cannot register an Airline using registerAirline() if it is not funded (312ms)
+
+  Contract: Oracles
+firstAirline=0x1f06213CC4e5B76210D44BA16a4F4d28f9CF2071
+Oracle Registered: 8, 5, 0
+Oracle Registered: 8, 2, 9
+Oracle Registered: 2, 5, 7
+Oracle Registered: 3, 4, 9
+Oracle Registered: 4, 8, 0
+Oracle Registered: 7, 0, 9
+Oracle Registered: 7, 6, 9
+Oracle Registered: 0, 5, 7
+Oracle Registered: 3, 7, 6
+Oracle Registered: 0, 8, 6
+Oracle Registered: 2, 0, 1
+Oracle Registered: 2, 4, 5
+Oracle Registered: 3, 4, 6
+Oracle Registered: 5, 6, 4
+Oracle Registered: 4, 1, 3
+Oracle Registered: 7, 5, 6
+Oracle Registered: 4, 2, 8
+Oracle Registered: 4, 2, 5
+Oracle Registered: 6, 0, 9
+    ✓ can register oracles (15257ms)
+
+Error 0 8 ND1309 1630085394
+
+Error 1 5 ND1309 1630085394
+
+Error 2 0 ND1309 1630085394
+
+Error 0 8 ND1309 1630085394
+
+Error 1 2 ND1309 1630085394
+
+Error 2 9 ND1309 1630085394
+
+Error 0 2 ND1309 1630085394
+
+Error 1 5 ND1309 1630085394
+
+Error 2 7 ND1309 1630085394
+
+Error 0 3 ND1309 1630085394
+
+Error 1 4 ND1309 1630085394
+
+Error 2 9 ND1309 1630085394
+
+Error 0 4 ND1309 1630085394
+
+Error 1 8 ND1309 1630085394
+
+Error 2 0 ND1309 1630085394
+
+Error 0 7 ND1309 1630085394
+
+Error 1 0 ND1309 1630085394
+
+Error 2 9 ND1309 1630085394
+
+Error 0 7 ND1309 1630085394
+
+Error 1 6 ND1309 1630085394
+
+Error 2 9 ND1309 1630085394
+
+Error 0 0 ND1309 1630085394
+
+Error 1 5 ND1309 1630085394
+
+Error 2 7 ND1309 1630085394
+
+Error 0 3 ND1309 1630085394
+
+Error 1 7 ND1309 1630085394
+
+Error 2 6 ND1309 1630085394
+
+Error 0 0 ND1309 1630085394
+
+Error 1 8 ND1309 1630085394
+
+Error 2 6 ND1309 1630085394
+
+Error 0 2 ND1309 1630085394
+
+Error 1 0 ND1309 1630085394
+
+Error 2 1 ND1309 1630085394
+
+Error 0 2 ND1309 1630085394
+
+Error 1 4 ND1309 1630085394
+
+Error 2 5 ND1309 1630085394
+
+Error 0 3 ND1309 1630085394
+
+Error 1 4 ND1309 1630085394
+
+Error 2 6 ND1309 1630085394
+
+Error 0 5 ND1309 1630085394
+
+Error 1 6 ND1309 1630085394
+
+Error 2 4 ND1309 1630085394
+
+Error 0 4 ND1309 1630085394
+
+Error 1 1 ND1309 1630085394
+
+Error 2 3 ND1309 1630085394
+
+Error 0 7 ND1309 1630085394
+
+Error 1 5 ND1309 1630085394
+
+Error 2 6 ND1309 1630085394
+
+Error 0 4 ND1309 1630085394
+
+Error 1 2 ND1309 1630085394
+
+Error 2 8 ND1309 1630085394
+
+Error 0 4 ND1309 1630085394
+
+Error 1 2 ND1309 1630085394
+
+Error 2 5 ND1309 1630085394
+
+Error 0 6 ND1309 1630085394
+
+Error 1 0 ND1309 1630085394
+
+Error 2 9 ND1309 1630085394
+    ✓ can request flight status (1819ms)
+
+
+  7 passing (20s)
+
